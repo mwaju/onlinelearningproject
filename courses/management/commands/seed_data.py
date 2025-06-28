@@ -45,6 +45,7 @@ class Command(BaseCommand):
         self.create_categories()
         self.create_users()
         self.create_courses_with_content()
+        self.create_assignments_and_quizzes()
         self.create_enrollments()
         self.create_assignment_submissions()
         self.create_quiz_submissions()
@@ -459,6 +460,72 @@ class Command(BaseCommand):
                         order=lesson_info['order'],
                         video_url=f"https://www.youtube.com/watch?v={fake.uuid4()}"
                     )
+    
+    def create_assignments_and_quizzes(self):
+        """Create assignments and quizzes for courses"""
+        self.stdout.write('📝 Creating assignments and quizzes...')
+        
+        for course in self.courses:
+            # Create assignments
+            assignment_titles = [
+                f'{course.title} - Assignment 1',
+                f'{course.title} - Assignment 2', 
+                f'{course.title} - Final Project'
+            ]
+            
+            for i, title in enumerate(assignment_titles):
+                assignment = Assignment.objects.create(
+                    course=course,
+                    title=title,
+                    description=f'Complete the following tasks based on what you learned in module {i+1}.',
+                    due_date=timezone.now() + timedelta(days=7*(i+1)),
+                    total_points=100 + (i * 50)
+                )
+                self.stdout.write(f'   Created assignment: {assignment.title}')
+            
+            # Create quizzes
+            quiz_titles = [
+                f'{course.title} - Module 1 Quiz',
+                f'{course.title} - Module 2 Quiz',
+                f'{course.title} - Final Exam'
+            ]
+            
+            for i, title in enumerate(quiz_titles):
+                quiz = Quiz.objects.create(
+                    course=course,
+                    title=title,
+                    description=f'Test your knowledge of module {i+1} content.',
+                    time_limit=30 + (i * 15),
+                    passing_score=70 + (i * 5),
+                    is_published=True,
+                    available_from=timezone.now() - timedelta(days=1),
+                    available_until=timezone.now() + timedelta(days=30)
+                )
+                
+                # Create questions for each quiz
+                question_types = ['multiple_choice', 'true_false', 'short_answer', 'essay']
+                for j in range(5):  # 5 questions per quiz
+                    question_type = random.choice(question_types)
+                    question = Question.objects.create(
+                        question_type='quiz',
+                        quiz=quiz,
+                        question_text=fake.sentence(nb_words=10) + '?',
+                        question_format=question_type,
+                        points=20,
+                        order=j + 1
+                    )
+                    
+                    # Create choices for multiple choice questions
+                    if question_type == 'multiple_choice':
+                        for k in range(4):
+                            Choice.objects.create(
+                                question=question,
+                                choice_text=fake.sentence(nb_words=5),
+                                is_correct=(k == 0),  # First choice is correct
+                                order=k + 1
+                            )
+                
+                self.stdout.write(f'   Created quiz: {quiz.title}')
     
     def create_enrollments(self):
         """Create enrollments for students in courses"""
