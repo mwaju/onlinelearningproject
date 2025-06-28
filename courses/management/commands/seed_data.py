@@ -35,59 +35,88 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Main method to seed the database"""
         self.stdout.write('🌱 Seeding database with comprehensive demo data...')
         
-        if options['clear']:
-            self.clear_data()
+        # Clear existing data first
+        self.clear_existing_data()
         
-        # Create data in proper order
-        with transaction.atomic():
-            self.create_categories()
-            self.create_users()
-            self.create_courses_with_content()
-            self.create_assignments_and_quizzes()
-            self.create_enrollments()
-            self.create_assignments_and_submissions()
-            self.create_quiz_submissions()
-            self.create_ratings()
-            self.create_discussions_and_comments()
-            self.create_live_sessions()
-            self.create_payments()
-            self.create_certificates()
-            self.create_instructor_applications()
+        # Create data in order
+        self.create_categories()
+        self.create_users()
+        self.create_courses_with_content()
+        self.create_enrollments()
+        self.create_assignment_submissions()
+        self.create_quiz_submissions()
+        self.create_ratings()
+        self.create_discussions()
+        self.create_live_sessions()
+        self.create_payments()
+        self.create_certificates()
+        self.create_instructor_applications()
         
-        self.stdout.write(self.style.SUCCESS('✅ Successfully seeded comprehensive demo data!'))
-        self.print_summary()
-    
-    def clear_data(self):
-        """Clear existing data"""
+        self.stdout.write('✅ Database seeding completed successfully!')
+        self.stdout.write('📊 Summary:')
+        self.stdout.write(f'   - Categories: {Category.objects.count()}')
+        self.stdout.write(f'   - Users: {User.objects.count()}')
+        self.stdout.write(f'   - Courses: {Course.objects.count()}')
+        self.stdout.write(f'   - Modules: {Module.objects.count()}')
+        self.stdout.write(f'   - Lessons: {Lesson.objects.count()}')
+        self.stdout.write(f'   - Assignments: {Assignment.objects.count()}')
+        self.stdout.write(f'   - Quizzes: {Quiz.objects.count()}')
+        self.stdout.write(f'   - Enrollments: {Enrollment.objects.count()}')
+        self.stdout.write(f'   - Submissions: {AssignmentSubmission.objects.count()}')
+        self.stdout.write(f'   - Quiz Submissions: {QuizSubmission.objects.count()}')
+        self.stdout.write(f'   - Ratings: {Rating.objects.count()}')
+        self.stdout.write(f'   - Discussions: {Discussion.objects.count()}')
+        self.stdout.write(f'   - Live Sessions: {LiveSession.objects.count()}')
+        self.stdout.write(f'   - Payments: {Payment.objects.count()}')
+        self.stdout.write(f'   - Certificates: {Certificate.objects.count()}')
+        self.stdout.write(f'   - Instructor Applications: {InstructorApplication.objects.count()}')
+        
+        self.stdout.write('\n🔑 Login Credentials:')
+        self.stdout.write('   Admin: admin@edulearn.com / admin123')
+        self.stdout.write('   Instructor: john.doe@edulearn.com / password123')
+        self.stdout.write('   Students: alice.smith@edulearn.com, bob.johnson@edulearn.com, carol.wilson@edulearn.com / password123')
+
+    def clear_existing_data(self):
+        """Clear all existing data from all models"""
         self.stdout.write('🧹 Clearing existing data...')
         
-        # Clear in reverse dependency order
+        # Clear in reverse dependency order to avoid foreign key constraints
         models_to_clear = [
-            QuizAnswer, QuizSubmission, Choice, Question, Quiz,
-            AssignmentSubmission, Assignment,
-            SessionChat, SessionParticipant, LiveSession,
-            Comment, Discussion,
-            Certificate,
-            Refund, Payment,
-            Rating, Enrollment, 
-            Lesson, Module, Course, Category,
-            InstructorApplication
+            (InstructorApplication, 'Instructor Applications'),
+            (Certificate, 'Certificates'),
+            (Payment, 'Payments'),
+            (SessionChat, 'Session Chats'),
+            (SessionParticipant, 'Session Participants'),
+            (LiveSession, 'Live Sessions'),
+            (Discussion, 'Discussions'),
+            (Rating, 'Course Ratings'),
+            (QuizSubmission, 'Quiz Submissions'),
+            (AssignmentSubmission, 'Assignment Submissions'),
+            (Enrollment, 'Enrollments'),
+            (Quiz, 'Quizzes'),
+            (Assignment, 'Assignments'),
+            (Lesson, 'Lessons'),
+            (Module, 'Modules'),
+            (Course, 'Courses'),
+            (Category, 'Categories'),
         ]
         
-        for model in models_to_clear:
+        for model, name in models_to_clear:
             count = model.objects.count()
-            model.objects.all().delete()
             if count > 0:
-                self.stdout.write(f'   Cleared {count} {model.__name__} objects')
+                model.objects.all().delete()
+                self.stdout.write(f'   Cleared {count} {name}')
         
         # Clear users except superusers
-        User = get_user_model()
         user_count = User.objects.filter(is_superuser=False).count()
-        User.objects.filter(is_superuser=False).delete()
         if user_count > 0:
+            User.objects.filter(is_superuser=False).delete()
             self.stdout.write(f'   Cleared {user_count} regular users')
+        
+        self.stdout.write('✅ Data clearing completed')
     
     def create_categories(self):
         """Create course categories"""
@@ -125,9 +154,10 @@ class Command(BaseCommand):
         
         # Create admin user
         admin_email = 'admin@edulearn.com'
-        if not User.objects.filter(email=admin_email).exists():
+        admin_username = 'admin'
+        if not User.objects.filter(email=admin_email).exists() and not User.objects.filter(username=admin_username).exists():
             admin = User.objects.create_superuser(
-                username='admin',
+                username=admin_username,
                 email=admin_email,
                 password='admin123',
                 first_name='Admin',
@@ -137,17 +167,35 @@ class Command(BaseCommand):
                 is_email_verified=True
             )
             self.stdout.write(f'   Created admin: {admin_email}')
+        else:
+            # Get existing admin user
+            admin = User.objects.filter(email=admin_email).first() or User.objects.filter(username=admin_username).first()
+            if admin:
+                self.stdout.write(f'   Admin already exists: {admin.email}')
+            else:
+                # Create admin with different username if needed
+                admin_username = 'admin_edulearn'
+                admin = User.objects.create_superuser(
+                    username=admin_username,
+                    email=admin_email,
+                    password='admin123',
+                    first_name='Admin',
+                    last_name='User',
+                    is_staff=True,
+                    is_superuser=True,
+                    is_email_verified=True
+                )
+                self.stdout.write(f'   Created admin with username {admin_username}: {admin_email}')
         
         # Create 1 instructor
         self.instructors = []
         instructor_data = [
             ('john_doe', 'john.doe@edulearn.com', 'John', 'Doe', 
-             'Experienced web developer and educator with 10+ years of experience teaching modern web technologies. Passionate about helping students master full-stack development.', 
-             'Web Development Expert')
+             'Experienced web developer and educator with 10+ years of experience teaching modern web technologies. Passionate about helping students master full-stack development.')
         ]
         
-        for username, email, first_name, last_name, bio, expertise in instructor_data:
-            if not User.objects.filter(email=email).exists():
+        for username, email, first_name, last_name, bio in instructor_data:
+            if not User.objects.filter(email=email).exists() and not User.objects.filter(username=username).exists():
                 user = User.objects.create_user(
                     username=username,
                     email=email,
@@ -156,7 +204,6 @@ class Command(BaseCommand):
                     last_name=last_name,
                     is_instructor=True,
                     bio=bio,
-                    expertise=expertise,
                     date_of_birth=fake.date_of_birth(minimum_age=30, maximum_age=50),
                     phone_number=fake.phone_number(),
                     address=fake.address(),
@@ -165,7 +212,28 @@ class Command(BaseCommand):
                 self.instructors.append(user)
                 self.stdout.write(f'   Created instructor: {email}')
             else:
-                self.instructors.append(User.objects.get(email=email))
+                user = User.objects.filter(email=email).first() or User.objects.filter(username=username).first()
+                if user:
+                    self.instructors.append(user)
+                    self.stdout.write(f'   Instructor already exists: {user.email}')
+                else:
+                    # Create with different username
+                    new_username = f"{username}_edulearn"
+                    user = User.objects.create_user(
+                        username=new_username,
+                        email=email,
+                        password='password123',
+                        first_name=first_name,
+                        last_name=last_name,
+                        is_instructor=True,
+                        bio=bio,
+                        date_of_birth=fake.date_of_birth(minimum_age=30, maximum_age=50),
+                        phone_number=fake.phone_number(),
+                        address=fake.address(),
+                        is_email_verified=True
+                    )
+                    self.instructors.append(user)
+                    self.stdout.write(f'   Created instructor with username {new_username}: {email}')
         
         # Create 3 students
         self.students = []
@@ -176,7 +244,7 @@ class Command(BaseCommand):
         ]
         
         for username, email, first_name, last_name, bio in student_data:
-            if not User.objects.filter(email=email).exists():
+            if not User.objects.filter(email=email).exists() and not User.objects.filter(username=username).exists():
                 user = User.objects.create_user(
                     username=username,
                     email=email,
@@ -193,7 +261,30 @@ class Command(BaseCommand):
                 self.students.append(user)
                 self.stdout.write(f'   Created student: {email}')
             else:
-                self.students.append(User.objects.get(email=email))
+                user = User.objects.filter(email=email).first() or User.objects.filter(username=username).first()
+                if user and not user.is_instructor:  # Only add if not an instructor
+                    self.students.append(user)
+                    self.stdout.write(f'   Student already exists: {user.email}')
+                elif user and user.is_instructor:
+                    self.stdout.write(f'   User {user.email} is an instructor, skipping as student')
+                else:
+                    # Create with different username
+                    new_username = f"{username}_edulearn"
+                    user = User.objects.create_user(
+                        username=new_username,
+                        email=email,
+                        password='password123',
+                        first_name=first_name,
+                        last_name=last_name,
+                        is_instructor=False,
+                        bio=bio,
+                        date_of_birth=fake.date_of_birth(minimum_age=18, maximum_age=35),
+                        phone_number=fake.phone_number(),
+                        address=fake.address(),
+                        is_email_verified=True
+                    )
+                    self.students.append(user)
+                    self.stdout.write(f'   Created student with username {new_username}: {email}')
     
     def create_courses_with_content(self):
         """Create 3 fully loaded courses with modules and lessons"""
@@ -369,110 +460,6 @@ class Command(BaseCommand):
                         video_url=f"https://www.youtube.com/watch?v={fake.uuid4()}"
                     )
     
-    def create_assignments_and_quizzes(self):
-        """Create assignments and quizzes for each course"""
-        self.stdout.write('📝 Creating assignments and quizzes...')
-        
-        for course in self.courses:
-            # Create assignments
-            assignment_data = [
-                {
-                    'title': f'{course.title} - Assignment 1',
-                    'description': 'Complete the following tasks based on what you learned in the first module.',
-                    'total_points': 100,
-                    'due_date': timezone.now() + timedelta(days=7)
-                },
-                {
-                    'title': f'{course.title} - Assignment 2',
-                    'description': 'Apply your knowledge to create a practical project.',
-                    'total_points': 150,
-                    'due_date': timezone.now() + timedelta(days=14)
-                },
-                {
-                    'title': f'{course.title} - Final Project',
-                    'description': 'Comprehensive project that demonstrates all learned concepts.',
-                    'total_points': 200,
-                    'due_date': timezone.now() + timedelta(days=30)
-                }
-            ]
-            
-            for i, assignment_info in enumerate(assignment_data):
-                module = course.modules.first()  # Assign to first module
-                assignment = Assignment.objects.create(
-                    title=assignment_info['title'],
-                    description=assignment_info['description'],
-                    course=course,
-                    module=module,
-                    due_date=assignment_info['due_date'],
-                    total_points=assignment_info['total_points']
-                )
-                self.stdout.write(f'   Created assignment: {assignment.title}')
-            
-            # Create quizzes
-            quiz_data = [
-                {
-                    'title': f'{course.title} - Module 1 Quiz',
-                    'description': 'Test your knowledge of the first module.',
-                    'time_limit': 30,
-                    'passing_score': 70,
-                    'available_from': timezone.now() - timedelta(days=1),
-                    'available_until': timezone.now() + timedelta(days=30)
-                },
-                {
-                    'title': f'{course.title} - Module 2 Quiz',
-                    'description': 'Assessment for the second module content.',
-                    'time_limit': 45,
-                    'passing_score': 75,
-                    'available_from': timezone.now() - timedelta(days=1),
-                    'available_until': timezone.now() + timedelta(days=30)
-                },
-                {
-                    'title': f'{course.title} - Final Exam',
-                    'description': 'Comprehensive final examination.',
-                    'time_limit': 60,
-                    'passing_score': 80,
-                    'available_from': timezone.now() - timedelta(days=1),
-                    'available_until': timezone.now() + timedelta(days=30)
-                }
-            ]
-            
-            for quiz_info in quiz_data:
-                quiz = Quiz.objects.create(
-                    title=quiz_info['title'],
-                    description=quiz_info['description'],
-                    course=course,
-                    module=course.modules.first(),
-                    time_limit=quiz_info['time_limit'],
-                    passing_score=quiz_info['passing_score'],
-                    available_from=quiz_info['available_from'],
-                    available_until=quiz_info['available_until'],
-                    is_published=True
-                )
-                self.stdout.write(f'   Created quiz: {quiz.title}')
-                
-                # Create questions for each quiz
-                question_types = ['multiple_choice', 'true_false', 'short_answer', 'essay']
-                for i in range(5):  # 5 questions per quiz
-                    question_type = random.choice(question_types)
-                    question = Question.objects.create(
-                        question_type='quiz',
-                        quiz=quiz,
-                        question_text=fake.sentence(nb_words=10) + '?',
-                        question_format=question_type,
-                        points=20,
-                        order=i + 1
-                    )
-                    
-                    # Create choices for multiple choice questions
-                    if question_type == 'multiple_choice':
-                        for j in range(4):
-                            Choice.objects.create(
-                                question=question,
-                                choice_text=fake.sentence(nb_words=5),
-                                is_correct=(j == 0),  # First choice is correct
-                                order=j + 1
-                            )
-    
     def create_enrollments(self):
         """Create enrollments for students in courses"""
         self.stdout.write('🎓 Creating enrollments...')
@@ -490,7 +477,7 @@ class Command(BaseCommand):
                     enrollment.save()
                 self.stdout.write(f'   Enrolled {student.first_name} in {course.title}')
     
-    def create_assignments_and_submissions(self):
+    def create_assignment_submissions(self):
         """Create assignment submissions"""
         self.stdout.write('📄 Creating assignment submissions...')
         
@@ -575,7 +562,7 @@ class Command(BaseCommand):
                     )
                     self.stdout.write(f'   Created rating: {student.first_name} rated {course.title}')
     
-    def create_discussions_and_comments(self):
+    def create_discussions(self):
         """Create discussions and comments"""
         self.stdout.write('💬 Creating discussions...')
         
@@ -608,52 +595,45 @@ class Command(BaseCommand):
                 self.stdout.write(f'   Created discussion: {discussion.title}')
     
     def create_live_sessions(self):
-        """Create live sessions"""
+        """Create live sessions for courses"""
         self.stdout.write('🎥 Creating live sessions...')
         
-        session_types = ['Lecture', 'Q&A Session', 'Workshop', 'Review Session', 'Office Hours']
+        session_types = ['Q&A Session', 'Workshop', 'Review Session', 'Office Hours']
         
         for course in self.courses:
-            for i in range(3):  # 3 sessions per course
-                session_type = random.choice(session_types)
-                start_time = timezone.now() + timedelta(days=random.randint(1, 30))
+            instructor = course.instructor
+            for i, session_type in enumerate(session_types):
+                start_time = timezone.now() + timedelta(days=i+1, hours=14)  # 2 PM next day
+                end_time = start_time + timedelta(hours=1)
                 
                 session = LiveSession.objects.create(
                     title=f'{course.title} - {session_type}',
-                    description=fake.paragraph(nb_sentences=2),
+                    description=f'Join us for an interactive {session_type.lower()} where you can ask questions and get help with the course material.',
                     course=course,
-                    instructor=self.instructors[0],
-                    session_type=session_type,
+                    instructor=instructor,
                     start_time=start_time,
-                    end_time=start_time + timedelta(hours=1),
-                    max_participants=random.randint(20, 100),
-                    is_active=True
+                    end_time=end_time,
+                    status='scheduled',
+                    meeting_link=f'https://meet.google.com/{fake.slug()}',
+                    recording_url=''
                 )
                 
-                # Create participants
-                for student in random.sample(self.students, min(3, len(self.students))):
-                    SessionParticipant.objects.create(
-                        session=session,
-                        student=student,
-                        joined_at=start_time - timedelta(minutes=random.randint(5, 15))
-                    )
+                # Add participants
+                for student in self.students:
+                    if random.choice([True, False]):  # 50% chance to join
+                        SessionParticipant.objects.create(
+                            session=session,
+                            user=student,
+                            is_presenter=False
+                        )
                 
-                # Create chat messages
-                for _ in range(random.randint(5, 15)):
-                    SessionChat.objects.create(
-                        session=session,
-                        sender=random.choice(self.students + self.instructors),
-                        message=fake.sentence(nb_words=10),
-                        timestamp=start_time + timedelta(minutes=random.randint(0, 60))
-                    )
-                
-                self.stdout.write(f'   Created live session: {session.title}')
+                self.stdout.write(f'   Created session: {session.title}')
     
     def create_payments(self):
         """Create payments and refunds"""
         self.stdout.write('💳 Creating payments...')
         
-        payment_methods = ['credit_card', 'paypal', 'stripe']
+        payment_methods = ['card', 'paypal', 'bank_transfer']
         payment_statuses = ['completed', 'pending', 'failed']
         
         for student in self.students:
@@ -663,67 +643,39 @@ class Command(BaseCommand):
                         student=student,
                         course=course,
                         amount=course.price,
-                        payment_method=random.choice(payment_methods),
+                        currency='USD',
                         status=random.choice(payment_statuses),
-                        transaction_id=fake.uuid4(),
-                        payment_date=timezone.now() - timedelta(days=random.randint(1, 365))
+                        payment_method=random.choice(payment_methods),
+                        stripe_payment_id=fake.uuid4(),
+                        stripe_customer_id=fake.uuid4()
                     )
                     
-                    # Create refund for some payments
+                    # Create refund for some completed payments
                     if payment.status == 'completed' and random.choice([True, False]):
                         refund = Refund.objects.create(
                             payment=payment,
                             amount=payment.amount * 0.8,  # 80% refund
-                            reason=random.choice(['Student request', 'Technical issue', 'Course cancellation']),
+                            currency='USD',
                             status='completed',
-                            refund_date=payment.payment_date + timedelta(days=random.randint(1, 30))
+                            reason=random.choice(['Student request', 'Technical issue', 'Course cancellation']),
+                            stripe_refund_id=fake.uuid4()
                         )
                         self.stdout.write(f'   Created refund for {student.first_name} - {course.title}')
                     
                     self.stdout.write(f'   Created payment: {student.first_name} - {course.title}')
     
     def create_certificates(self):
-        """Create certificates and templates"""
+        """Create certificates for completed enrollments"""
         self.stdout.write('🏆 Creating certificates...')
-        
-        # Create certificate templates
-        template_data = [
-            {
-                'name': 'Standard Certificate',
-                'description': 'Standard course completion certificate',
-                'template_html': '<div class="certificate">...</div>'
-            },
-            {
-                'name': 'Premium Certificate',
-                'description': 'Premium certificate with gold border',
-                'template_html': '<div class="certificate premium">...</div>'
-            },
-            {
-                'name': 'Achievement Certificate',
-                'description': 'Certificate for outstanding achievement',
-                'template_html': '<div class="certificate achievement">...</div>'
-            }
-        ]
-        
-        self.templates = []
-        for template_info in template_data:
-            template = Certificate.objects.create(
-                name=template_info['name'],
-                description=template_info['description'],
-                template_html=template_info['template_html']
-            )
-            self.templates.append(template)
-            self.stdout.write(f'   Created template: {template.name}')
         
         # Create certificates for completed enrollments
         for enrollment in Enrollment.objects.filter(completed=True):
             certificate = Certificate.objects.create(
-                student=enrollment.student,
+                user=enrollment.student,
                 course=enrollment.course,
-                template=random.choice(self.templates),
-                issued_date=enrollment.completed_at,
                 certificate_number=fake.uuid4(),
-                is_valid=True
+                verification_code=fake.uuid4(),
+                is_verified=True
             )
             self.stdout.write(f'   Created certificate for {enrollment.student.first_name} - {enrollment.course.title}')
     
@@ -735,62 +687,24 @@ class Command(BaseCommand):
         
         for student in self.students:
             if random.choice([True, False]):  # 50% chance to apply
+                # Create a simple resume file
+                resume_content = b'fake resume content'
+                resume_file = SimpleUploadedFile(
+                    f"resume_{student.username}.pdf",
+                    resume_content,
+                    content_type="application/pdf"
+                )
+                
                 application = InstructorApplication.objects.create(
-                    applicant=student,
-                    bio=fake.paragraph(nb_sentences=3),
-                    expertise=random.choice(['Web Development', 'Data Science', 'Design', 'Marketing']),
-                    experience_years=random.randint(1, 10),
-                    education=fake.sentence(nb_words=8),
-                    portfolio_url=f"https://{fake.domain_name()}",
-                    status=random.choice(application_statuses),
-                    submitted_at=timezone.now() - timedelta(days=random.randint(1, 90))
+                    user=student,
+                    resume=resume_file,
+                    cover_letter=fake.paragraph(nb_sentences=5),
+                    status=random.choice(application_statuses)
                 )
                 
                 if application.status != 'pending':
-                    application.reviewed_at = application.submitted_at + timedelta(days=random.randint(1, 14))
-                    application.reviewer_notes = fake.paragraph(nb_sentences=2)
+                    application.reviewed_at = application.applied_at + timedelta(days=random.randint(1, 14))
+                    application.admin_notes = fake.paragraph(nb_sentences=2)
                     application.save()
                 
-                self.stdout.write(f'   Created application: {student.first_name} - {application.expertise}')
-    
-    def print_summary(self):
-        """Print a summary of created data"""
-        self.stdout.write('\n📊 SEED DATA SUMMARY:')
-        self.stdout.write('=' * 50)
-        
-        # Count objects by model
-        models_to_count = [
-            (User, 'Users'),
-            (Category, 'Categories'),
-            (Course, 'Courses'),
-            (Module, 'Modules'),
-            (Lesson, 'Lessons'),
-            (Assignment, 'Assignments'),
-            (AssignmentSubmission, 'Assignment Submissions'),
-            (Quiz, 'Quizzes'),
-            (Question, 'Questions'),
-            (QuizSubmission, 'Quiz Submissions'),
-            (Enrollment, 'Enrollments'),
-            (Rating, 'Ratings'),
-            (Discussion, 'Discussions'),
-            (Comment, 'Comments'),
-            (LiveSession, 'Live Sessions'),
-            (Payment, 'Payments'),
-            (Certificate, 'Certificates'),
-            (InstructorApplication, 'Instructor Applications'),
-        ]
-        
-        for model, name in models_to_count:
-            count = model.objects.count()
-            self.stdout.write(f'{name}: {count}')
-        
-        self.stdout.write('\n🔑 TEST ACCOUNTS:')
-        self.stdout.write('=' * 30)
-        self.stdout.write('Admin: admin@edulearn.com / admin123')
-        self.stdout.write('Instructor: john.doe@edulearn.com / password123')
-        self.stdout.write('Students:')
-        for student in self.students:
-            self.stdout.write(f'  {student.email} / password123')
-        
-        self.stdout.write('\n🚀 Ready to test the platform!')
-        self.stdout.write('Visit: http://127.0.0.1:8000/')
+                self.stdout.write(f'   Created application: {student.first_name} - {application.status}')
