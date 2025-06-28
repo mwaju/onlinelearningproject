@@ -19,7 +19,7 @@ from users.models import User, InstructorApplication
 from discussions.models import Discussion, Comment
 from live_sessions.models import LiveSession, SessionParticipant, SessionChat
 from payments.models import Payment, Refund
-from certificates.models import Certificate, CertificateTemplate
+from certificates.models import Certificate
 from faker import Faker
 
 fake = Faker()
@@ -69,7 +69,7 @@ class Command(BaseCommand):
             AssignmentSubmission, Assignment,
             SessionChat, SessionParticipant, LiveSession,
             Comment, Discussion,
-            Certificate, CertificateTemplate,
+            Certificate,
             Refund, Payment,
             Rating, Enrollment, 
             Lesson, Module, Course, Category,
@@ -707,7 +707,7 @@ class Command(BaseCommand):
         
         self.templates = []
         for template_info in template_data:
-            template = CertificateTemplate.objects.create(
+            template = Certificate.objects.create(
                 name=template_info['name'],
                 description=template_info['description'],
                 template_html=template_info['template_html']
