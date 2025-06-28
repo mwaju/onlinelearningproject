@@ -163,6 +163,10 @@ def grade_assignment(request, assignment_id, submission_id=None):
             messages.info(request, 'No ungraded submissions found.')
             return redirect('instructor:assignment_detail', assignment_id=assignment.id)
     
+    # Check if submission is late and automatically graded
+    is_late_submission = submission.submitted_at and submission.submitted_at > assignment.due_date
+    is_auto_graded = submission.graded_at and submission.feedback and "Automatic grade: F" in submission.feedback
+    
     # Get all submissions for this student and assignment
     previous_submissions = AssignmentSubmission.objects.filter(
         assignment=assignment,
@@ -173,8 +177,27 @@ def grade_assignment(request, assignment_id, submission_id=None):
         form = GradeAssignmentForm(request.POST, instance=submission)
         if form.is_valid():
             submission = form.save(commit=False)
+            
+            # If this is a late submission that was auto-graded, allow instructor to override
+            if is_auto_graded and 'override_auto_grade' in request.POST:
+                # Remove the automatic grading feedback and allow manual grading
+                submission.feedback = submission.feedback.replace("Assignment submitted after the deadline. Automatic grade: F", "")
+                submission.graded_at = None
+                submission.graded_by = None
+                submission.save()
+                messages.info(request, 'Automatic grade removed. You can now provide a manual grade.')
+                return redirect('instructor:grade_assignment', assignment_id=assignment.id, submission_id=submission.id)
+            
+            # Normal grading process
             submission.graded_at = timezone.now()
             submission.graded_by = request.user
+            
+            # If this is a late submission and not already auto-graded, add a note
+            if is_late_submission and not is_auto_graded:
+                if not submission.feedback:
+                    submission.feedback = ""
+                submission.feedback += f"\n\nNote: This assignment was submitted {submission.submitted_at - assignment.due_date} after the deadline."
+            
             submission.save()
             
             messages.success(request, 'Assignment graded successfully.')
@@ -216,7 +239,10 @@ def grade_assignment(request, assignment_id, submission_id=None):
         'next_submission': AssignmentSubmission.objects.filter(
             assignment=assignment,
             graded_at__isnull=True
-        ).exclude(id=submission.id).exists()
+        ).exclude(id=submission.id).exists(),
+        'is_late_submission': is_late_submission,
+        'is_auto_graded': is_auto_graded,
+        'late_duration': submission.submitted_at - assignment.due_date if is_late_submission else None,
     }
     
     return render(request, 'instructor/grade_assignment.html', context)
@@ -624,6 +650,20 @@ def duplicate_quiz(request, quiz_id):
 
 @login_required
 @require_POST
+def delete_quiz(request, quiz_id):
+    """
+    Delete a quiz and all its associated data.
+    """
+    quiz = get_object_or_404(Quiz, id=quiz_id, course__instructor=request.user)
+    
+    quiz_title = quiz.title
+    quiz.delete()
+    
+    messages.success(request, f'Quiz "{quiz_title}" deleted successfully.')
+    return redirect('instructor:quiz_list')
+
+@login_required
+@require_POST
 def regrade_submission(request, submission_id):
     """
     Regrade a quiz submission, recalculating scores for auto-graded questions.
@@ -765,7 +805,7 @@ def bulk_grade_quizzes(request):
     # Get questions that need grading
     questions = Question.objects.filter(
         quiz__in=quizzes,
-        answers__points_earned__isnull=True
+        quizanswer__points_earned__isnull=True
     ).distinct()
     
     # Apply filters
@@ -776,7 +816,7 @@ def bulk_grade_quizzes(request):
     
     # Get the number of ungraded answers per question
     questions = questions.annotate(
-        ungraded_count=Count('answers', filter=Q(answers__points_earned__isnull=True))
+        ungraded_count=Count('quizanswer', filter=Q(quizanswer__points_earned__isnull=True))
     ).filter(ungraded_count__gt=0)
     
     # Pagination

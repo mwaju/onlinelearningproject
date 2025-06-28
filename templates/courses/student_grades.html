@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Grades - Online Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+.grades-header {
+    background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.stats-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.stats-number.average { color: #28a745; }
+.stats-number.total { color: #007bff; }
+
+.course-grades {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.grade-item {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #007bff;
+}
+
+.grade-item.assignment { border-left-color: #007bff; }
+.grade-item.quiz { border-left-color: #28a745; }
+
+.grade-display {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.grade-a { color: #28a745; }
+.grade-b { color: #17a2b8; }
+.grade-c { color: #ffc107; }
+.grade-d { color: #fd7e14; }
+.grade-f { color: #dc3545; }
+
+.course-header {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #6c757d;
+}
+
+.average-grade {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.no-grades {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Grades Header -->
+<section class="grades-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="{% url 'courses:student_dashboard' %}" class="text-white">Dashboard</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">My Grades</li>
+                    </ol>
+                </nav>
+                <h1 class="h2 mb-2">My Grades</h1>
+                <p class="mb-0">Track your academic performance across all courses</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{% url 'courses:student_assignments' %}" class="btn btn-light">
+                    <i class="fas fa-clipboard-list me-2"></i>View Assignments
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number total">{{ total_assignments }}</div>
+                <p class="mb-0">Total Assignments</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number total">{{ total_quizzes }}</div>
+                <p class="mb-0">Total Quizzes</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number average">{{ avg_assignment_grade|floatformat:1 }}%</div>
+                <p class="mb-0">Avg Assignment Grade</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number average">{{ avg_quiz_grade|floatformat:1 }}%</div>
+                <p class="mb-0">Avg Quiz Grade</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Grades -->
+    {% if course_grades %}
+        {% for course, data in course_grades.items %}
+            <div class="course-grades">
+                <div class="course-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="h4 mb-1">{{ course.title }}</h3>
+                            <p class="text-muted mb-0">Instructor: {{ course.instructor.get_full_name }}</p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="average-grade">
+                                {% if data.assignments or data.quizzes %}
+                                    {% if data.assignments and data.quizzes %}
+                                        {% widthratio data.avg_assignment_grade|add:data.avg_quiz_grade 2 1 %}%
+                                    {% elif data.assignments %}
+                                        {{ data.avg_assignment_grade|floatformat:1 }}%
+                                    {% else %}
+                                        {{ data.avg_quiz_grade|floatformat:1 }}%
+                                    {% endif %}
+                                {% else %}
+                                    No grades yet
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignment Grades -->
+                {% if data.assignments %}
+                    <h5 class="mb-3">
+                        <i class="fas fa-clipboard-list me-2"></i>Assignment Grades
+                        {% if data.avg_assignment_grade > 0 %}
+                            <span class="text-muted">(Average: {{ data.avg_assignment_grade|floatformat:1 }}%)</span>
+                        {% endif %}
+                    </h5>
+                    {% for submission in data.assignments %}
+                        <div class="grade-item assignment">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="mb-1">{{ submission.assignment.title }}</h6>
+                                    {% if submission.assignment.module %}
+                                        <small class="text-muted">Module: {{ submission.assignment.module.title }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="grade-display 
+                                        {% if submission.grade >= 90 %}grade-a
+                                        {% elif submission.grade >= 80 %}grade-b
+                                        {% elif submission.grade >= 70 %}grade-c
+                                        {% elif submission.grade >= 60 %}grade-d
+                                        {% else %}grade-f{% endif %}">
+                                        {{ submission.grade }}/{{ submission.assignment.total_points }}
+                                    </span>
+                                </div>
+                                <div class="col-md-3 text-md-end">
+                                    <a href="{% url 'courses:submission_detail' submission.assignment.id submission.id %}" class="btn btn-outline-primary btn-sm">
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Quiz Grades -->
+                {% if data.quizzes %}
+                    <h5 class="mb-3 mt-4">
+                        <i class="fas fa-question-circle me-2"></i>Quiz Grades
+                        {% if data.avg_quiz_grade > 0 %}
+                            <span class="text-muted">(Average: {{ data.avg_quiz_grade|floatformat:1 }}%)</span>
+                        {% endif %}
+                    </h5>
+                    {% for submission in data.quizzes %}
+                        <div class="grade-item quiz">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="mb-1">{{ submission.quiz.title }}</h6>
+                                    {% if submission.quiz.module %}
+                                        <small class="text-muted">Module: {{ submission.quiz.module.title }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="grade-display 
+                                        {% if submission.score >= 90 %}grade-a
+                                        {% elif submission.score >= 80 %}grade-b
+                                        {% elif submission.score >= 70 %}grade-c
+                                        {% elif submission.score >= 60 %}grade-d
+                                        {% else %}grade-f{% endif %}">
+                                        {{ submission.score|floatformat:1 }}%
+                                    </span>
+                                </div>
+                                <div class="col-md-3 text-md-end">
+                                    <small class="text-muted">Completed: {{ submission.end_time|date:"M d, Y" }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-grades">
+            <i class="fas fa-chart-line fa-3x mb-3"></i>
+            <h3>No grades available yet</h3>
+            <p class="text-muted">You haven't received any grades yet. Complete assignments and quizzes to see your grades here.</p>
+            <a href="{% url 'courses:student_assignments' %}" class="btn btn-primary">
+                <i class="fas fa-clipboard-list me-2"></i>View Assignments
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 import sys
 from datetime import timedelta
+from .jazzmin import JAZZMIN_SETTINGS, JAZZMIN_UI_TWEAKS
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',  # Must be first
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -238,3 +240,10 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
 # API Settings
 API_BASE_URL = 'http://localhost:8000/api'
+
+# Admin email for notifications
+ADMIN_EMAIL = 'admin@onlinelearning.com'
+
+# Jazzmin Configuration
+JAZZMIN_SETTINGS=JAZZMIN_SETTINGS
+JAZZMIN_UI_TWEAKS=JAZZMIN_UI_TWEAKS

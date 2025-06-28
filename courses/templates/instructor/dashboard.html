@@ -25,7 +25,7 @@
                                         <i class="fas fa-tasks text-primary"></i>
                                     </div>
                                 </div>
-                                <a href="{% url 'instructor:assignment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                                <a href="{% url 'courses:instructor_assignment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
                             </div>
                         </div>
                     </div>
@@ -41,7 +41,7 @@
                                         <i class="fas fa-question-circle text-warning"></i>
                                     </div>
                                 </div>
-                                <a href="{% url 'instructor:grade_ungraded_questions' quiz_id=0 %}" class="btn btn-sm btn-outline-warning mt-2">Grade Now</a>
+                                <a href="{% url 'courses:instructor_grade_ungraded_questions' quiz_id=0 %}" class="btn btn-sm btn-outline-warning mt-2">Grade Now</a>
                             </div>
                         </div>
                     </div>
@@ -57,7 +57,7 @@
                                         <i class="fas fa-chart-line text-success"></i>
                                     </div>
                                 </div>
-                                <a href="{% url 'instructor:assignment_list' %}" class="btn btn-sm btn-outline-success mt-2">View Reports</a>
+                                <a href="{% url 'courses:instructor_assignment_list' %}" class="btn btn-sm btn-outline-success mt-2">View Reports</a>
                             </div>
                         </div>
                     </div>
@@ -73,7 +73,7 @@
                                         <i class="fas fa-chart-pie text-info"></i>
                                     </div>
                                 </div>
-                                <a href="{% url 'instructor:quiz_list' %}" class="btn btn-sm btn-outline-info mt-2">View Reports</a>
+                                <a href="{% url 'courses:instructor_quiz_list' %}" class="btn btn-sm btn-outline-info mt-2">View Reports</a>
                             </div>
                         </div>
                     </div>
@@ -87,13 +87,13 @@
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Recent Assignments</h5>
-                <a href="{% url 'instructor:assignment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                <a href="{% url 'courses:instructor_assignment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
             <div class="card-body p-0">
                 {% if recent_assignments %}
                     <div class="list-group list-group-flush">
                         {% for assignment in recent_assignments %}
-                        <a href="{% url 'instructor:assignment_detail' assignment.id %}" 
+                        <a href="{% url 'courses:instructor_assignment_detail' assignment.id %}" 
                            class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">{{ assignment.title }}</h6>
@@ -118,7 +118,7 @@
                 {% else %}
                     <div class="text-center p-4">
                         <p class="text-muted">No assignments found.</p>
-                        <a href="{% url 'instructor:create_assignment' %}" class="btn btn-primary btn-sm">
+                        <a href="{% url 'courses:instructor_create_assignment' %}" class="btn btn-primary btn-sm">
                             <i class="fas fa-plus me-1"></i> Create Assignment
                         </a>
                     </div>
@@ -132,13 +132,13 @@
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Recent Quizzes</h5>
-                <a href="{% url 'instructor:quiz_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                <a href="{% url 'courses:instructor_quiz_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
             <div class="card-body p-0">
                 {% if recent_quizzes %}
                     <div class="list-group list-group-flush">
                         {% for quiz in recent_quizzes %}
-                        <a href="{% url 'instructor:quiz_detail' quiz.id %}" 
+                        <a href="{% url 'courses:instructor_quiz_detail' quiz.id %}" 
                            class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">
@@ -170,7 +170,7 @@
                 {% else %}
                     <div class="text-center p-4">
                         <p class="text-muted">No quizzes found.</p>
-                        <a href="{% url 'instructor:create_quiz' %}" class="btn btn-primary btn-sm">
+                        <a href="{% url 'courses:instructor_create_quiz' %}" class="btn btn-primary btn-sm">
                             <i class="fas fa-plus me-1"></i> Create Quiz
                         </a>
                     </div>
@@ -190,12 +190,12 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <a href="{% url 'instructor:create_assignment' %}" class="btn btn-outline-primary w-100">
+                        <a href="{% url 'courses:instructor_create_assignment' %}" class="btn btn-outline-primary w-100">
                             <i class="fas fa-plus-circle me-2"></i> New Assignment
                         </a>
                     </div>
                     <div class="col-md-3">
-                        <a href="{% url 'instructor:bulk_grade_quizzes' %}" class="btn btn-outline-primary w-100">
+                        <a href="{% url 'courses:instructor_bulk_grade_quizzes' %}" class="btn btn-outline-primary w-100">
                             <i class="fas fa-plus-circle me-2"></i> New Quiz
                         </a>
                     </div>

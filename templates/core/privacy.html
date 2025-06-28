@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Privacy Policy{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Privacy Policy
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Last updated: {{ "now"|date:"F d, Y" }}</p>
+                    
+                    <section class="mb-4">
+                        <h4>1. Information We Collect</h4>
+                        <p>We collect information you provide directly to us, such as when you create an account, enroll in courses, or contact us for support.</p>
+                        <ul>
+                            <li><strong>Account Information:</strong> Name, email address, username, and password</li>
+                            <li><strong>Profile Information:</strong> Profile picture, bio, date of birth, phone number, and address</li>
+                            <li><strong>Course Data:</strong> Enrollments, progress, assignments, and grades</li>
+                            <li><strong>Payment Information:</strong> Payment method details and transaction history</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-4">
+                        <h4>2. How We Use Your Information</h4>
+                        <p>We use the information we collect to:</p>
+                        <ul>
+                            <li>Provide and maintain our educational services</li>
+                            <li>Process payments and enrollments</li>
+                            <li>Send you important updates about your courses</li>
+                            <li>Improve our platform and user experience</li>
+                            <li>Comply with legal obligations</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-4">
+                        <h4>3. Information Sharing</h4>
+                        <p>We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except in the following circumstances:</p>
+                        <ul>
+                            <li>With your instructors for course-related purposes</li>
+                            <li>With payment processors to complete transactions</li>
+                            <li>When required by law or to protect our rights</li>
+                            <li>With your explicit consent</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-4">
+                        <h4>4. Data Security</h4>
+                        <p>We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h4>5. Your Rights</h4>
+                        <p>You have the right to:</p>
+                        <ul>
+                            <li>Access and update your personal information</li>
+                            <li>Request deletion of your account and data</li>
+                            <li>Opt out of marketing communications</li>
+                            <li>Request a copy of your data</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-4">
+                        <h4>6. Cookies and Tracking</h4>
+                        <p>We use cookies and similar technologies to enhance your experience on our platform. You can control cookie settings through your browser preferences.</p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h4>7. Contact Us</h4>
+                        <p>If you have any questions about this Privacy Policy, please contact us at:</p>
+                        <div class="alert alert-info">
+                            <strong>Email:</strong> privacy@onlinelearning.com<br>
+                            <strong>Address:</strong> 123 Learning Street, Education City, EC 12345
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

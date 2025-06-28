@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Assignments - Online Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+.assignment-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+    border-left: 4px solid #007bff;
+}
+
+.assignment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.assignment-card.pending {
+    border-left-color: #ffc107;
+}
+
+.assignment-card.submitted {
+    border-left-color: #17a2b8;
+}
+
+.assignment-card.graded {
+    border-left-color: #28a745;
+}
+
+.assignment-card.late {
+    border-left-color: #dc3545;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-submitted {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-graded {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-late {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.filter-section {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.due-date {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.due-date.overdue {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.grade-display {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.grade-a { color: #28a745; }
+.grade-b { color: #17a2b8; }
+.grade-c { color: #ffc107; }
+.grade-d { color: #fd7e14; }
+.grade-f { color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2 mb-2">My Assignments</h1>
+            <p class="text-muted">Track your assignments across all enrolled courses</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{% url 'courses:student_grades' %}" class="btn btn-outline-primary">
+                <i class="fas fa-chart-line me-2"></i>View Grades
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Assignments</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Submitted</option>
+                    <option value="graded" {% if status_filter == 'graded' %}selected{% endif %}>Graded</option>
+                    <option value="late" {% if status_filter == 'late' %}selected{% endif %}>Late</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="course" class="form-label">Course</label>
+                <select name="course" id="course" class="form-select">
+                    <option value="">All Courses</option>
+                    {% for enrollment in enrollments %}
+                        <option value="{{ enrollment.course.id }}" {% if course_filter == enrollment.course.id|stringformat:"s" %}selected{% endif %}>
+                            {{ enrollment.course.title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="sort" class="form-label">Sort By</label>
+                <select name="sort" id="sort" class="form-select">
+                    <option value="due_date" {% if sort_by == 'due_date' %}selected{% endif %}>Due Date</option>
+                    <option value="course" {% if sort_by == 'course' %}selected{% endif %}>Course</option>
+                    <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Filter</button>
+                <a href="{% url 'courses:student_assignments' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Assignments List -->
+    {% if assignments %}
+        <div class="row">
+            {% for assignment in assignments %}
+                <div class="col-12">
+                    <div class="assignment-card {% if assignment.is_late and not assignment.is_submitted %}late{% elif assignment.is_graded %}graded{% elif assignment.is_submitted %}submitted{% else %}pending{% endif %}">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="mb-1">{{ assignment.title }}</h5>
+                                    <span class="status-badge 
+                                        {% if assignment.is_late and not assignment.is_submitted %}status-late
+                                        {% elif assignment.is_graded %}status-graded
+                                        {% elif assignment.is_submitted %}status-submitted
+                                        {% else %}status-pending{% endif %}">
+                                        {% if assignment.is_late and not assignment.is_submitted %}
+                                            Overdue
+                                        {% elif assignment.is_graded %}
+                                            Graded
+                                        {% elif assignment.is_submitted %}
+                                            Submitted
+                                        {% else %}
+                                            Pending
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <p class="text-muted mb-2">{{ assignment.course.title }}</p>
+                                {% if assignment.module %}
+                                    <p class="text-muted small mb-2">Module: {{ assignment.module.title }}</p>
+                                {% endif %}
+                                <p class="mb-2">{{ assignment.description|truncatewords:30 }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="due-date {% if assignment.is_late %}overdue{% endif %}">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Due: {{ assignment.due_date|date:"M d, Y g:i A" }}
+                                    </span>
+                                    <span class="text-muted">
+                                        <i class="fas fa-star me-1"></i>
+                                        {{ assignment.total_points }} points
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                {% if assignment.is_graded %}
+                                    <div class="mb-2">
+                                        <span class="grade-display 
+                                            {% if assignment.student_submission.grade >= 90 %}grade-a
+                                            {% elif assignment.student_submission.grade >= 80 %}grade-b
+                                            {% elif assignment.student_submission.grade >= 70 %}grade-c
+                                            {% elif assignment.student_submission.grade >= 60 %}grade-d
+                                            {% else %}grade-f{% endif %}">
+                                            {{ assignment.student_submission.grade }}/{{ assignment.total_points }}
+                                        </span>
+                                    </div>
+                                    <a href="{% url 'courses:submission_detail' assignment.id assignment.student_submission.id %}" class="btn btn-outline-primary btn-sm">
+                                        View Feedback
+                                    </a>
+                                {% elif assignment.is_submitted %}
+                                    <div class="mb-2">
+                                        <span class="text-info">
+                                            <i class="fas fa-check-circle me-1"></i>Submitted
+                                        </span>
+                                    </div>
+                                    <a href="{% url 'courses:assignment_detail' assignment.id %}" class="btn btn-outline-info btn-sm">
+                                        View Submission
+                                    </a>
+                                {% else %}
+                                    <div class="mb-2">
+                                        {% if assignment.is_late %}
+                                            <span class="text-danger">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Overdue
+                                            </span>
+                                        {% else %}
+                                            <span class="text-warning">
+                                                <i class="fas fa-clock me-1"></i>Pending
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{% url 'courses:assignment_detail' assignment.id %}" class="btn btn-primary btn-sm">
+                                        {% if assignment.is_late %}Submit Now{% else %}Start Assignment{% endif %}
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if assignments.has_other_pages %}
+            <nav aria-label="Assignments pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if assignments.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ assignments.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if course_filter %}&course={{ course_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in assignments.paginator.page_range %}
+                        {% if assignments.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > assignments.number|add:'-3' and num < assignments.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if course_filter %}&course={{ course_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if assignments.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ assignments.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if course_filter %}&course={{ course_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+            <h3 class="text-muted">No assignments found</h3>
+            <p class="text-muted">You don't have any assignments matching your current filters.</p>
+            <a href="{% url 'courses:student_assignments' %}" class="btn btn-primary">View All Assignments</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

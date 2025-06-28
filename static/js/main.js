@@ -34,29 +34,75 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check for elements in view on scroll
     window.addEventListener('scroll', animateOnScroll);
 
-    // Navbar scroll behavior
-    const navbar = document.querySelector('.navbar');
-    let lastScroll = 0;
-
-    window.addEventListener('scroll', () => {
-        const currentScroll = window.pageYOffset;
-
-        if (currentScroll <= 0) {
-            navbar.classList.remove('scroll-up');
-            return;
+    // Modern Navbar scroll behavior
+    const navbarModern = document.querySelector('.navbar-modern');
+    
+    if (navbarModern) {
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 50) {
+                navbarModern.classList.add('scrolled');
+            } else {
+                navbarModern.classList.remove('scrolled');
+            }
+        });
+    }
+    
+    // Active link highlighting for modern navbar
+    const currentLocation = window.location.pathname;
+    const navLinks = document.querySelectorAll('.modern-nav-link');
+    
+    navLinks.forEach(link => {
+        const linkPath = link.getAttribute('href');
+        if (linkPath && currentLocation.includes(linkPath) && linkPath !== '/') {
+            link.classList.add('active');
+        } else if (currentLocation === '/' && linkPath === '/') {
+            link.classList.add('active');
         }
-
-        if (currentScroll > lastScroll && !navbar.classList.contains('scroll-down')) {
-            // Scroll down
-            navbar.classList.remove('scroll-up');
-            navbar.classList.add('scroll-down');
-        } else if (currentScroll < lastScroll && navbar.classList.contains('scroll-down')) {
-            // Scroll up
-            navbar.classList.remove('scroll-down');
-            navbar.classList.add('scroll-up');
-        }
-        lastScroll = currentScroll;
     });
+    
+    // Smooth dropdown animations
+    const dropdowns = document.querySelectorAll('.dropdown');
+    dropdowns.forEach(dropdown => {
+        const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+        if (dropdownMenu) {
+            dropdown.addEventListener('show.bs.dropdown', function() {
+                dropdownMenu.style.opacity = '0';
+                dropdownMenu.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    dropdownMenu.style.transition = 'all 0.3s ease';
+                    dropdownMenu.style.opacity = '1';
+                    dropdownMenu.style.transform = 'translateY(0)';
+                }, 10);
+            });
+        }
+    });
+    
+    // Notification badge animation
+    const notificationBadge = document.querySelector('.badge');
+    if (notificationBadge) {
+        setInterval(() => {
+            notificationBadge.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                notificationBadge.style.transform = 'scale(1)';
+            }, 200);
+        }, 3000);
+    }
+    
+    // Mobile menu improvements
+    const navbarToggler = document.querySelector('.modern-toggler');
+    const navbarCollapse = document.querySelector('.navbar-collapse');
+    
+    if (navbarToggler && navbarCollapse) {
+        navbarToggler.addEventListener('click', function() {
+            setTimeout(() => {
+                if (navbarCollapse.classList.contains('show')) {
+                    navbarCollapse.style.animation = 'slideDown 0.3s ease forwards';
+                } else {
+                    navbarCollapse.style.animation = 'slideUp 0.3s ease forwards';
+                }
+            }, 10);
+        });
+    }
 
     // Form validation
     const forms = document.querySelectorAll('.needs-validation');
@@ -70,12 +116,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Auto-hide alerts after 5 seconds
-    const alerts = document.querySelectorAll('.alert');
+    // Auto-hide modern alerts after 5 seconds
+    const alerts = document.querySelectorAll('.modern-alert');
     alerts.forEach(alert => {
         setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+            if (alert && alert.parentNode) {
+                alert.style.transition = 'all 0.5s ease';
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.parentNode.removeChild(alert);
+                    }
+                }, 500);
+            }
         }, 5000);
     });
 
@@ -89,6 +143,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
     popoverTriggerList.map(function (popoverTriggerEl) {
         return new bootstrap.Popover(popoverTriggerEl);
+    });
+
+    // Enhanced form interactions
+    const formControls = document.querySelectorAll('.form-control');
+    
+    formControls.forEach(control => {
+        control.addEventListener('focus', function() {
+            this.parentElement.classList.add('focused');
+        });
+        
+        control.addEventListener('blur', function() {
+            if (!this.value) {
+                this.parentElement.classList.remove('focused');
+            }
+        });
     });
 
     // Back to top button
@@ -113,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Add styles for back to top button
+// Add styles for back to top button and mobile menu animations
 const style = document.createElement('style');
 style.textContent = `
     .back-to-top {
@@ -123,7 +192,7 @@ style.textContent = `
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         color: white;
         border: none;
         cursor: pointer;
@@ -134,16 +203,50 @@ style.textContent = `
         visibility: hidden;
         transition: all 0.3s ease;
         z-index: 1000;
+        box-shadow: var(--shadow-medium);
     }
-
+    
     .back-to-top.show {
         opacity: 1;
         visibility: visible;
     }
-
+    
     .back-to-top:hover {
-        background: var(--secondary-color);
-        transform: translateY(-2px);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(107, 115, 255, 0.3);
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+    }
+    
+    .form-control:focus + label,
+    .form-control:not(:placeholder-shown) + label {
+        transform: translateY(-1.5rem) scale(0.8);
+        color: var(--primary-color);
+    }
+    
+    .focused .form-label {
+        color: var(--primary-color);
+        transform: translateY(-1.5rem) scale(0.8);
     }
 `;
 document.head.appendChild(style); 

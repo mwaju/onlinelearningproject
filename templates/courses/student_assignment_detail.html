@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ assignment.title }} - Online Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+.assignment-header {
+    background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.assignment-content {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.submission-form {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.status-badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-weight: 500;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-submitted {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-graded {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-late {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.due-date {
+    font-size: 1rem;
+    color: #6c757d;
+}
+
+.due-date.overdue {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.grade-display {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.grade-a { 
+    background-color: #d4edda; 
+    color: #155724; 
+}
+
+.grade-b { 
+    background-color: #d1ecf1; 
+    color: #0c5460; 
+}
+
+.grade-c { 
+    background-color: #fff3cd; 
+    color: #856404; 
+}
+
+.grade-d { 
+    background-color: #f8d7da; 
+    color: #721c24; 
+}
+
+.grade-f { 
+    background-color: #f8d7da; 
+    color: #721c24; 
+}
+
+.feedback-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.file-preview {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.warning-alert {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Assignment Header -->
+<section class="assignment-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="{% url 'courses:student_assignments' %}" class="text-white">My Assignments</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">{{ assignment.title }}</li>
+                    </ol>
+                </nav>
+                <h1 class="h2 mb-2">{{ assignment.title }}</h1>
+                <p class="mb-0">{{ assignment.course.title }}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="status-badge 
+                    {% if is_past_due and not submission.submitted_at %}status-late
+                    {% elif submission.graded_at %}status-graded
+                    {% elif submission.submitted_at %}status-submitted
+                    {% else %}status-pending{% endif %}">
+                    {% if is_past_due and not submission.submitted_at %}
+                        Overdue
+                    {% elif submission.graded_at %}
+                        Graded
+                    {% elif submission.submitted_at %}
+                        Submitted
+                    {% else %}
+                        Pending
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <div class="row">
+        <!-- Assignment Details -->
+        <div class="col-lg-8">
+            <div class="assignment-content">
+                <h3 class="mb-3">Assignment Details</h3>
+                
+                {% if assignment.module %}
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-folder me-2"></i>Module: {{ assignment.module.title }}
+                    </p>
+                {% endif %}
+                
+                <div class="mb-4">
+                    <h5>Description</h5>
+                    <p>{{ assignment.description|linebreaks }}</p>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-clock me-2"></i>Due Date</h6>
+                        <p class="due-date {% if is_past_due %}overdue{% endif %}">
+                            {{ assignment.due_date|date:"F d, Y g:i A" }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-star me-2"></i>Points</h6>
+                        <p>{{ assignment.total_points }} points</p>
+                    </div>
+                </div>
+                
+                {% if is_past_due and not submission.submitted_at %}
+                    <div class="warning-alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This assignment is past the due date. Late submissions will be automatically graded as F.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Submission Status -->
+        <div class="col-lg-4">
+            <div class="submission-form">
+                <h4 class="mb-3">Submission Status</h4>
+                
+                {% if submission.graded_at %}
+                    <!-- Graded Submission -->
+                    <div class="grade-display 
+                        {% if submission.grade >= 90 %}grade-a
+                        {% elif submission.grade >= 80 %}grade-b
+                        {% elif submission.grade >= 70 %}grade-c
+                        {% elif submission.grade >= 60 %}grade-d
+                        {% else %}grade-f{% endif %}">
+                        {{ submission.grade }}/{{ assignment.total_points }}
+                    </div>
+                    
+                    <div class="feedback-section">
+                        <h6>Feedback</h6>
+                        <p>{{ submission.feedback|linebreaks }}</p>
+                        <small class="text-muted">
+                            Graded by {{ submission.graded_by.get_full_name }} on {{ submission.graded_at|date:"M d, Y" }}
+                        </small>
+                    </div>
+                    
+                    <a href="{% url 'courses:submission_detail' assignment.id submission.id %}" class="btn btn-primary w-100">
+                        View Full Submission
+                    </a>
+                    
+                {% elif submission.submitted_at %}
+                    <!-- Submitted but not graded -->
+                    <div class="text-center mb-3">
+                        <i class="fas fa-check-circle fa-2x text-info mb-2"></i>
+                        <h5 class="text-info">Submitted</h5>
+                        <p class="text-muted">Submitted on {{ submission.submitted_at|date:"M d, Y g:i A" }}</p>
+                        {% if submission_is_late %}
+                            <span class="badge bg-warning text-dark">Late Submission</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Your Submission</h6>
+                        {% if submission.submission_text %}
+                            <div class="file-preview">
+                                <h6>Text Submission:</h6>
+                                <p>{{ submission.submission_text|truncatewords:50 }}</p>
+                            </div>
+                        {% endif %}
+                        {% if submission.submission_file %}
+                            <div class="file-preview">
+                                <h6>File Submission:</h6>
+                                <a href="{{ submission.submission_file.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-download me-1"></i>Download File
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            Update Submission
+                        </button>
+                    </form>
+                    
+                {% else %}
+                    <!-- Not submitted yet -->
+                    <div class="text-center mb-3">
+                        <i class="fas fa-edit fa-2x text-warning mb-2"></i>
+                        <h5 class="text-warning">Not Submitted</h5>
+                        {% if is_past_due %}
+                            <p class="text-danger">This assignment is overdue</p>
+                        {% else %}
+                            <p class="text-muted">Submit your work before the deadline</p>
+                        {% endif %}
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.submission_text.id_for_label }}" class="form-label">Text Submission</label>
+                            {{ form.submission_text }}
+                            {% if form.submission_text.errors %}
+                                <div class="text-danger">{{ form.submission_text.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.submission_file.id_for_label }}" class="form-label">File Submission</label>
+                            {{ form.submission_file }}
+                            {% if form.submission_file.errors %}
+                                <div class="text-danger">{{ form.submission_file.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Upload a file (optional)</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            {% if is_past_due %}Submit Late{% else %}Submit Assignment{% endif %}
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

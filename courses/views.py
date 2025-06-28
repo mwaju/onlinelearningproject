@@ -4,7 +4,6 @@ from django.utils import timezone
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import filters
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
@@ -15,10 +14,10 @@ import requests
 from django.conf import settings
 from django.db.models import Avg
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib.auth import get_user_model
 
-from .models import Course, Module, Lesson, Enrollment, Category
+from .models import Course, Module, Lesson, Enrollment, Category, Assignment, AssignmentSubmission
 from .serializers import (
     CourseSerializer, CourseCreateSerializer,
     ModuleSerializer, LessonSerializer,
@@ -83,6 +82,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(courses, many=True)
         return Response(serializer.data)
 
+
 class ModuleViewSet(viewsets.ModelViewSet):
     queryset = Module.objects.all()
     serializer_class = ModuleSerializer
@@ -108,6 +108,7 @@ class ModuleViewSet(viewsets.ModelViewSet):
             raise permissions.PermissionDenied()
         ModuleService.reorder_modules(course, module_order)
         return Response(status=status.HTTP_200_OK)
+
 
 class LessonViewSet(viewsets.ModelViewSet):
     queryset = Lesson.objects.all()
@@ -135,6 +136,7 @@ class LessonViewSet(viewsets.ModelViewSet):
         LessonService.reorder_lessons(module, lesson_order)
         return Response(status=status.HTTP_200_OK)
 
+
 class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
@@ -158,6 +160,7 @@ class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
         enrollment = self.get_object()
         progress = EnrollmentService.get_student_progress(enrollment)
         return Response(progress)
+
 
 # Template Rendering Views
 class CourseListView(ListView):
@@ -200,6 +203,7 @@ class CourseListView(ListView):
         if categories_response.status_code == 200:
             context['categories'] = categories_response.json()
         return context
+
 
 class CourseDetailView(DetailView):
     model = Course
@@ -350,6 +354,7 @@ class CourseDetailView(DetailView):
             
         return context
 
+
 @login_required
 def course_learn_view(request, slug):
     # Get course details
@@ -400,6 +405,7 @@ def course_learn_view(request, slug):
     }
     return render(request, 'courses/course_learn.html', context)
 
+
 @login_required
 def course_discussions_view(request, slug):
     # Get course details
@@ -408,7 +414,7 @@ def course_discussions_view(request, slug):
         headers={'Authorization': f'Bearer {request.session.get("access_token")}'}
     )
     if course_response.status_code != 200:
-        return redirect('course_list')
+        return redirect('courses:course_list')
 
     course = course_response.json()
 
@@ -435,6 +441,7 @@ def course_discussions_view(request, slug):
     }
     return render(request, 'courses/course_discussions.html', context)
 
+
 @login_required
 def discussion_detail_view(request, slug, discussion_id):
     # Get course details
@@ -443,7 +450,7 @@ def discussion_detail_view(request, slug, discussion_id):
         headers={'Authorization': f'Bearer {request.session.get("access_token")}'}
     )
     if course_response.status_code != 200:
-        return redirect('course_list')
+        return redirect('courses:course_list')
 
     course = course_response.json()
 
@@ -453,7 +460,7 @@ def discussion_detail_view(request, slug, discussion_id):
         headers={'Authorization': f'Bearer {request.session.get("access_token")}'}
     )
     if discussion_response.status_code != 200:
-        return redirect('course_discussions', slug=slug)
+        return redirect('courses:course_discussions', slug=slug)
 
     discussion = discussion_response.json()
 
@@ -471,6 +478,7 @@ def discussion_detail_view(request, slug, discussion_id):
         'progress': progress
     }
     return render(request, 'courses/discussion_detail.html', context)
+
 
 class StudentDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'courses/student_dashboard.html'
@@ -546,6 +554,34 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         in_progress_count = len(enrolled_courses)
         completed_count = len(completed_courses)
         
+        # Get assignment statistics
+        # Get all assignments from enrolled courses
+        enrolled_course_ids = [e['course'].id for e in enrolled_courses]
+        assignments = Assignment.objects.filter(course_id__in=enrolled_course_ids)
+        
+        # Assignment statistics
+        total_assignments = assignments.count()
+        pending_assignments = 0
+        submitted_assignments = 0
+        graded_assignments = 0
+        overdue_assignments = 0
+        
+        for assignment in assignments:
+            submission = AssignmentSubmission.objects.filter(
+                assignment=assignment,
+                student=user
+            ).first()
+            
+            if not submission:
+                if assignment.due_date < timezone.now():
+                    overdue_assignments += 1
+                else:
+                    pending_assignments += 1
+            elif submission.graded_at:
+                graded_assignments += 1
+            else:
+                submitted_assignments += 1
+        
         context.update({
             'enrolled_courses': [e['course'] for e in enrolled_courses],
             'completed_courses': [c['course'] for c in completed_courses],
@@ -553,9 +589,15 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
             'course_progress': course_progress,
             'total_courses': total_courses,
             'in_progress_count': in_progress_count,
-            'completed_count': completed_count
+            'completed_count': completed_count,
+            'total_assignments': total_assignments,
+            'pending_assignments': pending_assignments,
+            'submitted_assignments': submitted_assignments,
+            'graded_assignments': graded_assignments,
+            'overdue_assignments': overdue_assignments,
         })
         return context
+
 
 class InstructorDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'courses/instructor_dashboard.html'
@@ -594,6 +636,7 @@ class InstructorDashboardView(LoginRequiredMixin, TemplateView):
             'total_revenue': total_revenue
         })
         return context
+
 
 class CourseCreateView(LoginRequiredMixin, CreateView):
     model = Course
@@ -634,12 +677,14 @@ class CourseUpdateView(LoginRequiredMixin, UpdateView):
         context['button_text'] = 'Update Course'
         return context
 
+
 def enroll_course(request, slug):
     # Redirect unauthenticated users to registration page with next parameter
     if not request.user.is_authenticated:
         messages.info(request, 'Please register or log in to enroll in this course.')
         register_url = f"{reverse('users:register')}?next={reverse('courses:enroll_course', kwargs={'slug': slug})}"
         return redirect(register_url)
+    
     try:
         # First try to get the course by slug from local database
         course = Course.objects.get(slug=slug)

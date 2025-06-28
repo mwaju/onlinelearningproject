@@ -4,7 +4,7 @@
 {% block page_title %}Quizzes{% endblock %}
 
 {% block page_actions %}
-    <a href="{% url 'instructor:create_quiz' %}" class="btn btn-primary">
+    <a href="{% url 'courses:instructor_create_quiz' %}" class="btn btn-primary">
         <i class="fas fa-plus me-1"></i> New Quiz
     </a>
 {% endblock %}
@@ -71,7 +71,7 @@
                                 {% for quiz in quizzes %}
                                 <tr>
                                     <td>
-                                        <a href="{% url 'instructor:quiz_detail' quiz.id %}" class="fw-bold">
+                                        <a href="{% url 'courses:instructor_quiz_detail' quiz.id %}" class="fw-bold">
                                             {{ quiz.title }}
                                             {% if not quiz.is_published %}
                                                 <span class="badge bg-warning text-dark ms-2">Draft</span>
@@ -114,7 +114,7 @@
                                             <div class="progress flex-grow-1 me-2" style="height: 6px;">
                                                 {% with total=quiz.submissions.count graded=quiz.submissions.graded.count %}
                                                 <div class="progress-bar bg-success" role="progressbar" 
-                                                     style="width: {% if total > 0 %}{{ graded|div:total|mul:100 }}{% else %}0{% endif %}%" 
+                                                     style="width: {% if total > 0 %}{% widthratio graded total 100 %}{% else %}0{% endif %}%" 
                                                      aria-valuenow="{{ graded }}" aria-valuemin="0" aria-valuemax="{{ total }}">
                                                 </div>
                                                 {% endwith %}
@@ -139,7 +139,7 @@
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group" role="group">
-                                            <a href="{% url 'instructor:quiz_detail' quiz.id %}" 
+                                            <a href="{% url 'courses:instructor_quiz_detail' quiz.id %}" 
                                                class="btn btn-sm btn-outline-primary"
                                                data-bs-toggle="tooltip" title="View">
                                                 <i class="fas fa-eye"></i>
@@ -155,13 +155,13 @@
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 {% if not quiz.is_published %}
                                                 <li>
-                                                    <a class="dropdown-item" href="{% url 'instructor:publish_quiz' quiz.id %}">
+                                                    <a class="dropdown-item" href="{% url 'courses:instructor_publish_quiz' quiz.id %}">
                                                         <i class="fas fa-check-circle me-2 text-success"></i>Publish
                                                     </a>
                                                 </li>
                                                 {% endif %}
                                                 <li>
-                                                    <a class="dropdown-item" href="{% url 'instructor:duplicate_quiz' quiz.id %}">
+                                                    <a class="dropdown-item" href="{% url 'courses:instructor_duplicate_quiz' quiz.id %}">
                                                         <i class="fas fa-copy me-2"></i>Duplicate
                                                     </a>
                                                 </li>
@@ -188,7 +188,7 @@
                                                     </div>
                                                     <div class="modal-footer">
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <form method="post" action="{% url 'instructor:delete_quiz' quiz.id %}" class="d-inline">
+                                                        <form method="post" action="{% url 'courses:instructor_delete_quiz' quiz.id %}" class="d-inline">
                                                             {% csrf_token %}
                                                             <button type="submit" class="btn btn-danger">Delete Quiz</button>
                                                         </form>
@@ -215,7 +215,7 @@
                                 Get started by creating a new quiz
                             {% endif %}
                         </p>
-                        <a href="{% url 'instructor:create_quiz' %}" class="btn btn-primary mt-2">
+                        <a href="{% url 'courses:instructor_create_quiz' %}" class="btn btn-primary mt-2">
                             <i class="fas fa-plus me-1"></i> Create Quiz
                         </a>
                     </div>

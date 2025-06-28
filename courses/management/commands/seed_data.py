@@ -5,76 +5,126 @@ from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.core.files import File
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
-from courses.models import Course, Module, Lesson, Category, Enrollment, Rating
+from django.db import transaction
+
+# Import all models from all apps
+from courses.models import (
+    Course, Module, Lesson, Category, Enrollment, Rating, 
+    Assignment, AssignmentSubmission, Quiz, Question, Choice,
+    QuizSubmission, QuizAnswer
+)
 from users.models import User, InstructorApplication
 from discussions.models import Discussion, Comment
 from live_sessions.models import LiveSession, SessionParticipant, SessionChat
 from payments.models import Payment, Refund
+from certificates.models import Certificate
 from faker import Faker
 
 fake = Faker()
 
 class Command(BaseCommand):
-    help = 'Seeds the database with demo data for the e-learning platform'
+    help = 'Seeds the database with comprehensive demo data for the entire e-learning platform'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='Clear all existing data before seeding',
+        )
 
     def handle(self, *args, **options):
-        self.stdout.write('Seeding database with demo data...')
+        self.stdout.write('🌱 Seeding database with comprehensive demo data...')
         
-        # Clear existing data
-        self.clear_data()
+        if options['clear']:
+            self.clear_data()
         
-        # Create data
-        self.create_categories()
-        self.create_users()
-        self.create_courses()
-        self.create_enrollments()
-        self.create_ratings()
-        self.create_discussions_and_comments()
-        self.create_live_sessions()
-        self.create_payments()
+        # Create data in proper order
+        with transaction.atomic():
+            self.create_categories()
+            self.create_users()
+            self.create_courses_with_content()
+            self.create_assignments_and_quizzes()
+            self.create_enrollments()
+            self.create_assignments_and_submissions()
+            self.create_quiz_submissions()
+            self.create_ratings()
+            self.create_discussions_and_comments()
+            self.create_live_sessions()
+            self.create_payments()
+            self.create_certificates()
+            self.create_instructor_applications()
         
-        self.stdout.write(self.style.SUCCESS('Successfully seeded demo data!'))
+        self.stdout.write(self.style.SUCCESS('✅ Successfully seeded comprehensive demo data!'))
+        self.print_summary()
     
     def clear_data(self):
         """Clear existing data"""
-        self.stdout.write('Clearing existing data...')
-        models = [
-            Rating, Enrollment, Lesson, Module, Course, Category,
-            Discussion, Comment, LiveSession, SessionParticipant, 
-            SessionChat, Payment, Refund, InstructorApplication
+        self.stdout.write('🧹 Clearing existing data...')
+        
+        # Clear in reverse dependency order
+        models_to_clear = [
+            QuizAnswer, QuizSubmission, Choice, Question, Quiz,
+            AssignmentSubmission, Assignment,
+            SessionChat, SessionParticipant, LiveSession,
+            Comment, Discussion,
+            Certificate,
+            Refund, Payment,
+            Rating, Enrollment, 
+            Lesson, Module, Course, Category,
+            InstructorApplication
         ]
-        for model in models:
+        
+        for model in models_to_clear:
+            count = model.objects.count()
             model.objects.all().delete()
+            if count > 0:
+                self.stdout.write(f'   Cleared {count} {model.__name__} objects')
         
         # Clear users except superusers
         User = get_user_model()
+        user_count = User.objects.filter(is_superuser=False).count()
         User.objects.filter(is_superuser=False).delete()
+        if user_count > 0:
+            self.stdout.write(f'   Cleared {user_count} regular users')
     
     def create_categories(self):
         """Create course categories"""
-        self.stdout.write('Creating categories...')
-        categories = [
-            'Web Development', 'Mobile Development', 'Data Science', 
-            'Business', 'Design', 'Marketing', 'Photography', 'Music',
-            'Language', 'Personal Development', 'IT & Software', 'Health & Fitness',
-            'Academics', 'Test Prep', 'Lifestyle', 'Other'
+        self.stdout.write('📚 Creating categories...')
+        categories_data = [
+            ('Web Development', 'Learn modern web development technologies'),
+            ('Mobile Development', 'Build mobile apps for iOS and Android'),
+            ('Data Science', 'Master data analysis and machine learning'),
+            ('Business', 'Business and entrepreneurship courses'),
+            ('Design', 'Graphic design and UI/UX courses'),
+            ('Marketing', 'Digital marketing and SEO strategies'),
+            ('Photography', 'Photography and videography skills'),
+            ('Music', 'Music production and theory'),
+            ('Language', 'Learn new languages'),
+            ('Personal Development', 'Self-improvement and life skills'),
+            ('IT & Software', 'IT certifications and software skills'),
+            ('Health & Fitness', 'Health, fitness, and wellness'),
+            ('Academics', 'Academic subjects and test prep'),
+            ('Lifestyle', 'Lifestyle and hobby courses'),
         ]
+        
         self.categories = []
-        for name in categories:
+        for name, description in categories_data:
             category = Category.objects.create(
                 name=name,
-                description=fake.paragraph(nb_sentences=3)
+                description=description
             )
             self.categories.append(category)
+            self.stdout.write(f'   Created category: {name}')
     
     def create_users(self):
         """Create demo users"""
-        self.stdout.write('Creating users...')
+        self.stdout.write('👥 Creating users...')
         User = get_user_model()
         
-        # Create admin user if not exists
-        admin_email = 'admin@example.com'
+        # Create admin user
+        admin_email = 'admin@edulearn.com'
         if not User.objects.filter(email=admin_email).exists():
             admin = User.objects.create_superuser(
                 username='admin',
@@ -83,20 +133,20 @@ class Command(BaseCommand):
                 first_name='Admin',
                 last_name='User',
                 is_staff=True,
-                is_superuser=True
+                is_superuser=True,
+                is_email_verified=True
             )
-            admin.is_email_verified = True
-            admin.save()
+            self.stdout.write(f'   Created admin: {admin_email}')
         
-        # Create instructors
+        # Create 1 instructor
         self.instructors = []
         instructor_data = [
-            ('john_doe', 'john.doe@example.com', 'John', 'Doe', 'I love teaching web development!'),
-            ('jane_smith', 'jane.smith@example.com', 'Jane', 'Smith', 'Data science enthusiast and educator'),
-            ('mike_johnson', 'mike.johnson@example.com', 'Mike', 'Johnson', 'Mobile app development expert')
+            ('john_doe', 'john.doe@edulearn.com', 'John', 'Doe', 
+             'Experienced web developer and educator with 10+ years of experience teaching modern web technologies. Passionate about helping students master full-stack development.', 
+             'Web Development Expert')
         ]
         
-        for username, email, first_name, last_name, bio in instructor_data:
+        for username, email, first_name, last_name, bio, expertise in instructor_data:
             if not User.objects.filter(email=email).exists():
                 user = User.objects.create_user(
                     username=username,
@@ -106,23 +156,26 @@ class Command(BaseCommand):
                     last_name=last_name,
                     is_instructor=True,
                     bio=bio,
-                    profile_picture=f'profile_pictures/instructor_{username}.jpg',
-                    date_of_birth=fake.date_of_birth(minimum_age=25, maximum_age=60),
+                    expertise=expertise,
+                    date_of_birth=fake.date_of_birth(minimum_age=30, maximum_age=50),
                     phone_number=fake.phone_number(),
+                    address=fake.address(),
                     is_email_verified=True
                 )
                 self.instructors.append(user)
+                self.stdout.write(f'   Created instructor: {email}')
             else:
                 self.instructors.append(User.objects.get(email=email))
         
-        # Create students
+        # Create 3 students
         self.students = []
-        for i in range(10):
-            first_name = fake.first_name()
-            last_name = fake.last_name()
-            username = f"student_{first_name.lower()}{i}"  # Remove underscore to avoid potential issues
-            email = f"{first_name.lower()}.{last_name.lower()}{i}@example.com"  # More unique email pattern
-            
+        student_data = [
+            ('alice_smith', 'alice.smith@edulearn.com', 'Alice', 'Smith', 'Computer Science student'),
+            ('bob_johnson', 'bob.johnson@edulearn.com', 'Bob', 'Johnson', 'Aspiring web developer'),
+            ('carol_wilson', 'carol.wilson@edulearn.com', 'Carol', 'Wilson', 'Design enthusiast')
+        ]
+        
+        for username, email, first_name, last_name, bio in student_data:
             if not User.objects.filter(email=email).exists():
                 user = User.objects.create_user(
                     username=username,
@@ -131,100 +184,138 @@ class Command(BaseCommand):
                     first_name=first_name,
                     last_name=last_name,
                     is_instructor=False,
-                    bio=fake.paragraph(),
-                    profile_picture=f'profile_pictures/student_{username}.jpg',
-                    date_of_birth=fake.date_of_birth(minimum_age=18, maximum_age=80),
+                    bio=bio,
+                    date_of_birth=fake.date_of_birth(minimum_age=18, maximum_age=35),
                     phone_number=fake.phone_number(),
                     address=fake.address(),
-                    is_email_verified=random.choice([True, False])
+                    is_email_verified=True
                 )
                 self.students.append(user)
+                self.stdout.write(f'   Created student: {email}')
             else:
-                # If user exists, use existing user
-                user = User.objects.get(email=email)
-                if not user.is_instructor:  # Only add if not an instructor
-                    self.students.append(user)
-                
-            # Ensure we have enough unique students
-            if len(self.students) >= 10:
-                break
+                self.students.append(User.objects.get(email=email))
     
-    def parse_duration(self, duration_str):
-        """Convert duration string to timedelta"""
-        duration_parts = duration_str.split()
-        duration_value = int(duration_parts[0])
-        duration_unit = duration_parts[1].lower()
-        
-        if 'hour' in duration_unit:
-            return timedelta(hours=duration_value)
-        elif 'min' in duration_unit:
-            return timedelta(minutes=duration_value)
-        return timedelta(days=duration_value)
-    
-    def create_courses(self):
-        """Create demo courses with modules and lessons"""
-        self.stdout.write('Creating courses...')
+    def create_courses_with_content(self):
+        """Create 3 fully loaded courses with modules and lessons"""
+        self.stdout.write('📖 Creating courses with content...')
         
         course_data = [
             {
-                'title': 'Introduction to Python',
-                'description': 'Learn Python from scratch',
-                'price': 99.99,
+                'title': 'Complete Web Development Bootcamp',
+                'description': 'Learn HTML, CSS, JavaScript, React, Node.js, and MongoDB to build modern web applications from scratch.',
+                'price': 199.99,
                 'level': 'beginner',
-                'duration': '30 hours',
+                'duration': timedelta(hours=40),
+                'category': 'Web Development',
                 'modules': [
                     {
-                        'title': 'Python Basics',
-                        'description': 'Learn the basics of Python',
+                        'title': 'HTML & CSS Fundamentals',
+                        'description': 'Learn the basics of HTML and CSS',
                         'order': 1,
                         'lessons': [
-                            {'title': 'Variables and Data Types', 'duration': '30 min', 'order': 1, 'content': 'Introduction to variables'},
-                             {'title': 'Control Flow', 'duration': '45 min', 'order': 2, 'content': 'If statements and loops'}
+                            {'title': 'Introduction to HTML', 'duration': timedelta(minutes=45), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'CSS Styling Basics', 'duration': timedelta(minutes=60), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Responsive Design', 'duration': timedelta(minutes=75), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
                         ]
                     },
                     {
-                        'title': 'Functions and Modules',
-                        'description': 'Learn about functions and modules',
+                        'title': 'JavaScript Programming',
+                        'description': 'Master JavaScript fundamentals',
                         'order': 2,
                         'lessons': [
-                            {'title': 'Defining Functions', 'duration': '40 min', 'order': 1, 'content': 'How to define and use functions'},
-                             {'title': 'Working with Modules', 'duration': '35 min', 'order': 2, 'content': 'Importing and using modules'}
+                            {'title': 'JavaScript Basics', 'duration': timedelta(minutes=60), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'DOM Manipulation', 'duration': timedelta(minutes=75), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'ES6+ Features', 'duration': timedelta(minutes=90), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
                         ]
-                    }
-                ]
-            },
-            {
-                'title': 'Web Development with Django',
-                'description': 'Build web applications with Django',
-                'price': 199.99,
-                'level': 'intermediate',
-                'duration': '50 hours',
-                'modules': [
+                    },
                     {
-                        'title': 'Django Basics',
-                        'description': 'Introduction to Django framework',
-                        'order': 1,
+                        'title': 'React Development',
+                        'description': 'Build modern UIs with React',
+                        'order': 3,
                         'lessons': [
-                            {'title': 'Django Overview', 'duration': '30 min', 'order': 1, 'content': 'Introduction to Django'},
-                             {'title': 'Models and Migrations', 'duration': '60 min', 'order': 2, 'content': 'Working with database models'}
+                            {'title': 'React Fundamentals', 'duration': timedelta(minutes=90), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'State Management', 'duration': timedelta(minutes=105), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Advanced React Patterns', 'duration': timedelta(minutes=120), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
                         ]
                     }
                 ]
             },
             {
-                'title': 'Data Science with Python',
-                'description': 'Master data analysis and visualization',
+                'title': 'Data Science Masterclass',
+                'description': 'Master Python, pandas, numpy, matplotlib, and machine learning algorithms for data analysis and visualization.',
                 'price': 299.99,
-                'level': 'advanced',
-                'duration': '40 hours',
+                'level': 'intermediate',
+                'duration': timedelta(hours=50),
+                'category': 'Data Science',
                 'modules': [
                     {
-                        'title': 'Pandas Fundamentals',
-                        'description': 'Data manipulation with Pandas',
+                        'title': 'Python for Data Science',
+                        'description': 'Learn Python programming for data analysis',
                         'order': 1,
                         'lessons': [
-                            {'title': 'Introduction to Pandas', 'duration': '45 min', 'order': 1, 'content': 'Pandas basics'},
-                             {'title': 'Data Cleaning', 'duration': '60 min', 'order': 2, 'content': 'Cleaning and preparing data'}
+                            {'title': 'Python Basics Review', 'duration': timedelta(minutes=60), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Working with Data Structures', 'duration': timedelta(minutes=75), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'File I/O and Data Processing', 'duration': timedelta(minutes=90), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
+                        ]
+                    },
+                    {
+                        'title': 'Data Analysis with Pandas',
+                        'description': 'Master pandas for data manipulation',
+                        'order': 2,
+                        'lessons': [
+                            {'title': 'Pandas Introduction', 'duration': timedelta(minutes=75), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Data Cleaning and Preprocessing', 'duration': timedelta(minutes=90), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Advanced Pandas Operations', 'duration': timedelta(minutes=105), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
+                        ]
+                    },
+                    {
+                        'title': 'Data Visualization',
+                        'description': 'Create compelling visualizations',
+                        'order': 3,
+                        'lessons': [
+                            {'title': 'Matplotlib Basics', 'duration': timedelta(minutes=60), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Seaborn for Statistical Plots', 'duration': timedelta(minutes=75), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Interactive Visualizations', 'duration': timedelta(minutes=90), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
+                        ]
+                    }
+                ]
+            },
+            {
+                'title': 'UI/UX Design Fundamentals',
+                'description': 'Learn design principles, user research, wireframing, and prototyping to create beautiful and functional user interfaces.',
+                'price': 149.99,
+                'level': 'beginner',
+                'duration': timedelta(hours=35),
+                'category': 'Design',
+                'modules': [
+                    {
+                        'title': 'Design Principles',
+                        'description': 'Learn fundamental design principles',
+                        'order': 1,
+                        'lessons': [
+                            {'title': 'Color Theory', 'duration': timedelta(minutes=45), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Typography Basics', 'duration': timedelta(minutes=60), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Layout and Composition', 'duration': timedelta(minutes=75), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
+                        ]
+                    },
+                    {
+                        'title': 'User Research',
+                        'description': 'Understand user needs and behaviors',
+                        'order': 2,
+                        'lessons': [
+                            {'title': 'User Personas', 'duration': timedelta(minutes=60), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'User Journey Mapping', 'duration': timedelta(minutes=75), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Usability Testing', 'duration': timedelta(minutes=90), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
+                        ]
+                    },
+                    {
+                        'title': 'Wireframing and Prototyping',
+                        'description': 'Create wireframes and interactive prototypes',
+                        'order': 3,
+                        'lessons': [
+                            {'title': 'Low-Fidelity Wireframes', 'duration': timedelta(minutes=60), 'order': 1, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'High-Fidelity Mockups', 'duration': timedelta(minutes=75), 'order': 2, 'content': fake.text(max_nb_chars=2000)},
+                            {'title': 'Interactive Prototypes', 'duration': timedelta(minutes=90), 'order': 3, 'content': fake.text(max_nb_chars=2000)}
                         ]
                     }
                 ]
@@ -232,34 +323,32 @@ class Command(BaseCommand):
         ]
         
         self.courses = []
-        
-        # List of placeholder image URLs for courses
-        placeholder_images = [
-            'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800&auto=format&fit=crop',  # Python
-            'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&auto=format&fit=crop',  # Web Dev
-            'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop',  # Data Science
-            'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&auto=format&fit=crop',  # Coding
-            'https://images.unsplash.com/photo-1617791168926-4a0c8daa4b3a?w=800&auto=format&fit=crop'   # Programming
-        ]
-        
-        for i, course_info in enumerate(course_data):
-            instructor = random.choice(self.instructors)
-            category = random.choice(self.categories)
+        for course_info in course_data:
+            # Create thumbnail
+            thumbnail_content = b'fake image content'
+            thumbnail_file = SimpleUploadedFile(
+                f"{course_info['title'].lower().replace(' ', '_')}_thumbnail.jpg",
+                thumbnail_content,
+                content_type="image/jpeg"
+            )
             
-            # Create course with a thumbnail URL
-            course = Course(
+            # Get category
+            category = Category.objects.get(name=course_info['category'])
+            
+            # Create course
+            course = Course.objects.create(
                 title=course_info['title'],
-                slug=f"{course_info['title'].lower().replace(' ', '-')}-{i+1}",
                 description=course_info['description'],
+                instructor=self.instructors[0],  # Use the first instructor
+                category=category,
                 price=course_info['price'],
                 level=course_info['level'],
-                duration=self.parse_duration(course_info['duration']),
-                instructor=instructor,
-                category=category,
-                is_published=True,
-                thumbnail=placeholder_images[i % len(placeholder_images)]
+                duration=course_info['duration'],
+                thumbnail=thumbnail_file,
+                is_published=True
             )
-            course.save()
+            self.courses.append(course)
+            self.stdout.write(f'   Created course: {course.title}')
             
             # Create modules and lessons
             for module_info in course_info['modules']:
@@ -271,228 +360,437 @@ class Command(BaseCommand):
                 )
                 
                 for lesson_info in module_info['lessons']:
-                    Lesson.objects.create(
+                    lesson = Lesson.objects.create(
                         module=module,
                         title=lesson_info['title'],
-                        duration=self.parse_duration(lesson_info['duration']),
                         content=lesson_info['content'],
-                        order=lesson_info['order']
-                    )
-            
-            self.courses.append(course)
-    
-    def create_ratings(self):
-        """Create demo ratings for courses"""
-        self.stdout.write('Creating ratings...')
-        
-        for course in self.courses:
-            # Get students enrolled in this course
-            enrolled_students = [e.student for e in course.enrollments.all()]
-            
-            # 30-80% of enrolled students will rate the course
-            num_ratings = random.randint(
-                int(len(enrolled_students) * 0.3),
-                int(len(enrolled_students) * 0.8)
-            )
-            
-            if num_ratings > 0:
-                rating_students = random.sample(enrolled_students, num_ratings)
-                
-                for student in rating_students:
-                    Rating.objects.create(
-                        course=course,
-                        user=student,
-                        rating=random.choices(
-                            [1, 2, 3, 4, 5],
-                            weights=[0.05, 0.1, 0.15, 0.3, 0.4]  # More likely to get higher ratings
-                        )[0],
-                        comment=fake.paragraph(nb_sentences=3) if random.random() > 0.3 else ''
+                        duration=lesson_info['duration'],
+                        order=lesson_info['order'],
+                        video_url=f"https://www.youtube.com/watch?v={fake.uuid4()}"
                     )
     
-    def create_discussions_and_comments(self):
-        """Create demo discussions and comments"""
-        self.stdout.write('Creating discussions and comments...')
+    def create_assignments_and_quizzes(self):
+        """Create assignments and quizzes for each course"""
+        self.stdout.write('📝 Creating assignments and quizzes...')
         
         for course in self.courses:
-            # Create 3-10 discussions per course
-            num_discussions = random.randint(3, 10)
+            # Create assignments
+            assignment_data = [
+                {
+                    'title': f'{course.title} - Assignment 1',
+                    'description': 'Complete the following tasks based on what you learned in the first module.',
+                    'total_points': 100,
+                    'due_date': timezone.now() + timedelta(days=7)
+                },
+                {
+                    'title': f'{course.title} - Assignment 2',
+                    'description': 'Apply your knowledge to create a practical project.',
+                    'total_points': 150,
+                    'due_date': timezone.now() + timedelta(days=14)
+                },
+                {
+                    'title': f'{course.title} - Final Project',
+                    'description': 'Comprehensive project that demonstrates all learned concepts.',
+                    'total_points': 200,
+                    'due_date': timezone.now() + timedelta(days=30)
+                }
+            ]
             
-            for _ in range(num_discussions):
-                # Randomly select a lesson from the course for some discussions
-                lesson = None
-                if course.modules.exists() and random.random() > 0.5:
-                    module = random.choice(course.modules.all())
-                    if module.lessons.exists():
-                        lesson = random.choice(module.lessons.all())
-                
-                discussion = Discussion.objects.create(
-                    title=fake.sentence(),
-                    content=fake.paragraph(nb_sentences=5),
+            for i, assignment_info in enumerate(assignment_data):
+                module = course.modules.first()  # Assign to first module
+                assignment = Assignment.objects.create(
+                    title=assignment_info['title'],
+                    description=assignment_info['description'],
                     course=course,
-                    lesson=lesson,
-                    author=random.choice(self.students + self.instructors),
-                    is_pinned=random.random() > 0.8,  # 20% chance of being pinned
-                    is_closed=random.random() > 0.9    # 10% chance of being closed
+                    module=module,
+                    due_date=assignment_info['due_date'],
+                    total_points=assignment_info['total_points']
                 )
-                
-                # Create 1-10 comments per discussion
-                num_comments = random.randint(1, 10)
-                for _ in range(num_comments):
-                    Comment.objects.create(
-                        discussion=discussion,
-                        author=random.choice(self.students + self.instructors),
-                        content=fake.paragraph(nb_sentences=3),
-                        is_solution=random.random() > 0.9  # 10% chance of being marked as solution
-                    )
-    
-    def create_live_sessions(self):
-        """Create demo live sessions"""
-        self.stdout.write('Creating live sessions...')
-        
-        status_weights = {
-            'scheduled': 0.6,
-            'live': 0.1,
-            'ended': 0.3,
-            'cancelled': 0.0
-        }
-        
-        for course in self.courses:
-            if not course.instructor:
-                continue
-                
-            # Create 1-3 live sessions per course
-            num_sessions = random.randint(1, 3)
+                self.stdout.write(f'   Created assignment: {assignment.title}')
             
-            for i in range(num_sessions):
-                start_time = timezone.now() + timedelta(days=random.randint(-30, 30))
-                end_time = start_time + timedelta(hours=random.randint(1, 3))
-                
-                session = LiveSession.objects.create(
-                    title=f"Live Session {i+1}: {fake.sentence(4)[:-1]}",
-                    description=fake.paragraph(nb_sentences=3),
+            # Create quizzes
+            quiz_data = [
+                {
+                    'title': f'{course.title} - Module 1 Quiz',
+                    'description': 'Test your knowledge of the first module.',
+                    'time_limit': 30,
+                    'passing_score': 70,
+                    'available_from': timezone.now() - timedelta(days=1),
+                    'available_until': timezone.now() + timedelta(days=30)
+                },
+                {
+                    'title': f'{course.title} - Module 2 Quiz',
+                    'description': 'Assessment for the second module content.',
+                    'time_limit': 45,
+                    'passing_score': 75,
+                    'available_from': timezone.now() - timedelta(days=1),
+                    'available_until': timezone.now() + timedelta(days=30)
+                },
+                {
+                    'title': f'{course.title} - Final Exam',
+                    'description': 'Comprehensive final examination.',
+                    'time_limit': 60,
+                    'passing_score': 80,
+                    'available_from': timezone.now() - timedelta(days=1),
+                    'available_until': timezone.now() + timedelta(days=30)
+                }
+            ]
+            
+            for quiz_info in quiz_data:
+                quiz = Quiz.objects.create(
+                    title=quiz_info['title'],
+                    description=quiz_info['description'],
                     course=course,
-                    instructor=course.instructor,
-                    start_time=start_time,
-                    end_time=end_time,
-                    status=random.choices(
-                        list(status_weights.keys()),
-                        weights=list(status_weights.values())
-                    )[0],
-                    meeting_link=f"https://meet.example.com/{fake.uuid4()}",
-                    recording_url=f"https://recordings.example.com/{fake.uuid4()}" if random.random() > 0.7 else ''
+                    module=course.modules.first(),
+                    time_limit=quiz_info['time_limit'],
+                    passing_score=quiz_info['passing_score'],
+                    available_from=quiz_info['available_from'],
+                    available_until=quiz_info['available_until'],
+                    is_published=True
                 )
+                self.stdout.write(f'   Created quiz: {quiz.title}')
                 
-                # Add participants
-                enrolled_students = [e.student for e in course.enrollments.all()]
-                if enrolled_students:
-                    # 30-100% of enrolled students join the session
-                    num_participants = random.randint(
-                        max(1, int(len(enrolled_students) * 0.3)),
-                        len(enrolled_students)
+                # Create questions for each quiz
+                question_types = ['multiple_choice', 'true_false', 'short_answer', 'essay']
+                for i in range(5):  # 5 questions per quiz
+                    question_type = random.choice(question_types)
+                    question = Question.objects.create(
+                        question_type='quiz',
+                        quiz=quiz,
+                        question_text=fake.sentence(nb_words=10) + '?',
+                        question_format=question_type,
+                        points=20,
+                        order=i + 1
                     )
-                    participants = random.sample(enrolled_students, num_participants)
                     
-                    for student in participants:
-                        joined_at = start_time + timedelta(minutes=random.randint(-5, 30))
-                        left_at = (
-                            joined_at + timedelta(minutes=random.randint(30, 120))
-                            if joined_at < end_time else None
-                        )
-                        
-                        SessionParticipant.objects.create(
-                            session=session,
-                            user=student,
-                            joined_at=joined_at,
-                            left_at=left_at,
-                            is_presenter=student == course.instructor
-                        )
-                        
-                        # Add some chat messages
-                        if left_at:
-                            current_time = joined_at
-                            while current_time < (left_at or end_time):
-                                if random.random() > 0.7:  # 30% chance of a message per minute
-                                    SessionChat.objects.create(
-                                        session=session,
-                                        user=student,
-                                        message=fake.sentence(),
-                                        timestamp=current_time
-                                    )
-                                current_time += timedelta(minutes=1)
-    
-    def create_payments(self):
-        """Create demo payments"""
-        self.stdout.write('Creating payments...')
-        
-        payment_methods = ['card', 'bank_transfer', 'paypal']
-        
-        for enrollment in Enrollment.objects.all():
-            if random.random() > 0.8:  # 80% chance of having a payment
-                payment = Payment.objects.create(
-                    student=enrollment.student,
-                    course=enrollment.course,
-                    amount=enrollment.course.price,
-                    currency='USD',
-                    status=random.choices(
-                        ['pending', 'completed', 'failed', 'refunded'],
-                        weights=[0.1, 0.8, 0.05, 0.05]
-                    )[0],
-                    payment_method=random.choice(payment_methods),
-                    stripe_payment_id=f'pi_{fake.uuid4().replace("-", "")}',
-                    stripe_customer_id=f'cus_{fake.uuid4().replace("-", "")}',
-                    created_at=enrollment.enrolled_at,
-                    metadata={
-                        'enrollment_id': str(enrollment.id),
-                        'course_title': enrollment.course.title
-                    }
-                )
-                
-                # Create a refund for some completed payments
-                if payment.status == 'completed' and random.random() > 0.9:  # 10% chance of refund
-                    from decimal import Decimal
-                    refund_percentage = Decimal(str(random.uniform(0.5, 1.0)))
-                    Refund.objects.create(
-                        payment=payment,
-                        amount=payment.amount * refund_percentage,  # 50-100% refund
-                        currency=payment.currency,
-                        status=random.choice(['pending', 'completed', 'failed']),
-                        reason=random.choice([
-                            'Changed my mind',
-                            'Course not as described',
-                            'Technical issues',
-                            'Other'
-                        ]),
-                        stripe_refund_id=f're_{fake.uuid4().replace("-", "")}',
-                        created_at=payment.created_at + timedelta(days=random.randint(1, 30)),
-                        metadata={
-                            'original_payment_id': str(payment.id),
-                            'refund_reason': 'Customer request'
-                        }
-                    )
+                    # Create choices for multiple choice questions
+                    if question_type == 'multiple_choice':
+                        for j in range(4):
+                            Choice.objects.create(
+                                question=question,
+                                choice_text=fake.sentence(nb_words=5),
+                                is_correct=(j == 0),  # First choice is correct
+                                order=j + 1
+                            )
     
     def create_enrollments(self):
-        """Create demo enrollments"""
-        self.stdout.write('Creating enrollments...')
+        """Create enrollments for students in courses"""
+        self.stdout.write('🎓 Creating enrollments...')
         
         for student in self.students:
-            # Each student enrolls in some courses
-            num_courses = random.randint(1, len(self.courses))
-            enrolled_courses = random.sample(self.courses, num_courses)
-            
-            for course in enrolled_courses:
-                # Random completion status (20% chance of completed)
-                is_completed = random.random() < 0.2
-                progress = 100 if is_completed else random.randint(0, 99)
-                enrolled_at = timezone.now() - timedelta(days=random.randint(1, 180))
-                
+            for course in self.courses:
                 enrollment = Enrollment.objects.create(
                     student=student,
                     course=course,
-                    progress=progress,
-                    completed=is_completed,
-                    enrolled_at=enrolled_at
+                    progress=random.randint(10, 90),
+                    completed=random.choice([True, False])
+                )
+                if enrollment.completed:
+                    enrollment.completed_at = timezone.now() - timedelta(days=random.randint(1, 30))
+                    enrollment.save()
+                self.stdout.write(f'   Enrolled {student.first_name} in {course.title}')
+    
+    def create_assignments_and_submissions(self):
+        """Create assignment submissions"""
+        self.stdout.write('📄 Creating assignment submissions...')
+        
+        for student in self.students:
+            for course in self.courses:
+                assignments = Assignment.objects.filter(course=course)
+                for assignment in assignments:
+                    # Randomly create submissions
+                    if random.choice([True, False]):
+                        submission_text = fake.paragraph(nb_sentences=5)
+                        submitted_at = assignment.due_date - timedelta(hours=random.randint(1, 24))
+                        
+                        submission = AssignmentSubmission.objects.create(
+                            assignment=assignment,
+                            student=student,
+                            submission_text=submission_text,
+                            submitted_at=submitted_at
+                        )
+                        
+                        # Randomly grade some submissions
+                        if random.choice([True, False]):
+                            grade = random.randint(60, 100)
+                            submission.grade = grade
+                            submission.feedback = fake.paragraph(nb_sentences=3)
+                            submission.graded_at = timezone.now()
+                            submission.graded_by = self.instructors[0]
+                            submission.save()
+                        
+                        self.stdout.write(f'   Created submission for {student.first_name} - {assignment.title}')
+    
+    def create_quiz_submissions(self):
+        """Create quiz submissions"""
+        self.stdout.write('📊 Creating quiz submissions...')
+        
+        for student in self.students:
+            for course in self.courses:
+                quizzes = Quiz.objects.filter(course=course)
+                for quiz in quizzes:
+                    # Randomly create quiz submissions
+                    if random.choice([True, False]):
+                        submission = QuizSubmission.objects.create(
+                            quiz=quiz,
+                            student=student,
+                            start_time=timezone.now() - timedelta(hours=random.randint(1, 24)),
+                            end_time=timezone.now() - timedelta(hours=random.randint(1, 24)),
+                            score=random.randint(60, 100),
+                            is_completed=True,
+                            time_spent=random.randint(300, 1800)  # 5-30 minutes
+                        )
+                        
+                        # Create quiz answers
+                        questions = Question.objects.filter(quiz=quiz)
+                        for question in questions:
+                            answer = QuizAnswer.objects.create(
+                                submission=submission,
+                                question=question,
+                                answer_text=fake.sentence(nb_words=10),
+                                is_correct=random.choice([True, False]),
+                                points_earned=random.randint(0, question.points)
+                            )
+                            
+                            # Add selected choices for multiple choice questions
+                            if question.question_format == 'multiple_choice':
+                                choices = Choice.objects.filter(question=question)
+                                if choices.exists():
+                                    answer.selected_choices.add(random.choice(choices))
+                        
+                        self.stdout.write(f'   Created quiz submission for {student.first_name} - {quiz.title}')
+    
+    def create_ratings(self):
+        """Create course ratings"""
+        self.stdout.write('⭐ Creating ratings...')
+        
+        for course in self.courses:
+            for student in self.students:
+                if random.choice([True, False]):  # 50% chance to rate
+                    rating = Rating.objects.create(
+                        course=course,
+                        user=student,
+                        rating=random.randint(3, 5),
+                        comment=fake.paragraph(nb_sentences=2)
+                    )
+                    self.stdout.write(f'   Created rating: {student.first_name} rated {course.title}')
+    
+    def create_discussions_and_comments(self):
+        """Create discussions and comments"""
+        self.stdout.write('💬 Creating discussions...')
+        
+        discussion_topics = [
+            'General Discussion',
+            'Questions & Answers',
+            'Project Showcase',
+            'Study Group',
+            'Tips & Tricks'
+        ]
+        
+        for course in self.courses:
+            for topic in discussion_topics:
+                discussion = Discussion.objects.create(
+                    title=f'{course.title} - {topic}',
+                    content=fake.paragraph(nb_sentences=3),
+                    course=course,
+                    author=random.choice(self.students + self.instructors),
+                    is_pinned=random.choice([True, False])
                 )
                 
-                if is_completed:
-                    enrollment.completed_at = enrolled_at + timedelta(days=random.randint(1, 30))
-                    enrollment.save()
+                # Create comments
+                for _ in range(random.randint(2, 5)):
+                    comment = Comment.objects.create(
+                        discussion=discussion,
+                        author=random.choice(self.students + self.instructors),
+                        content=fake.paragraph(nb_sentences=2)
+                    )
+                
+                self.stdout.write(f'   Created discussion: {discussion.title}')
+    
+    def create_live_sessions(self):
+        """Create live sessions"""
+        self.stdout.write('🎥 Creating live sessions...')
+        
+        session_types = ['Lecture', 'Q&A Session', 'Workshop', 'Review Session', 'Office Hours']
+        
+        for course in self.courses:
+            for i in range(3):  # 3 sessions per course
+                session_type = random.choice(session_types)
+                start_time = timezone.now() + timedelta(days=random.randint(1, 30))
+                
+                session = LiveSession.objects.create(
+                    title=f'{course.title} - {session_type}',
+                    description=fake.paragraph(nb_sentences=2),
+                    course=course,
+                    instructor=self.instructors[0],
+                    session_type=session_type,
+                    start_time=start_time,
+                    end_time=start_time + timedelta(hours=1),
+                    max_participants=random.randint(20, 100),
+                    is_active=True
+                )
+                
+                # Create participants
+                for student in random.sample(self.students, min(3, len(self.students))):
+                    SessionParticipant.objects.create(
+                        session=session,
+                        student=student,
+                        joined_at=start_time - timedelta(minutes=random.randint(5, 15))
+                    )
+                
+                # Create chat messages
+                for _ in range(random.randint(5, 15)):
+                    SessionChat.objects.create(
+                        session=session,
+                        sender=random.choice(self.students + self.instructors),
+                        message=fake.sentence(nb_words=10),
+                        timestamp=start_time + timedelta(minutes=random.randint(0, 60))
+                    )
+                
+                self.stdout.write(f'   Created live session: {session.title}')
+    
+    def create_payments(self):
+        """Create payments and refunds"""
+        self.stdout.write('💳 Creating payments...')
+        
+        payment_methods = ['credit_card', 'paypal', 'stripe']
+        payment_statuses = ['completed', 'pending', 'failed']
+        
+        for student in self.students:
+            for course in self.courses:
+                if random.choice([True, False]):  # 50% chance to have payment
+                    payment = Payment.objects.create(
+                        student=student,
+                        course=course,
+                        amount=course.price,
+                        payment_method=random.choice(payment_methods),
+                        status=random.choice(payment_statuses),
+                        transaction_id=fake.uuid4(),
+                        payment_date=timezone.now() - timedelta(days=random.randint(1, 365))
+                    )
+                    
+                    # Create refund for some payments
+                    if payment.status == 'completed' and random.choice([True, False]):
+                        refund = Refund.objects.create(
+                            payment=payment,
+                            amount=payment.amount * 0.8,  # 80% refund
+                            reason=random.choice(['Student request', 'Technical issue', 'Course cancellation']),
+                            status='completed',
+                            refund_date=payment.payment_date + timedelta(days=random.randint(1, 30))
+                        )
+                        self.stdout.write(f'   Created refund for {student.first_name} - {course.title}')
+                    
+                    self.stdout.write(f'   Created payment: {student.first_name} - {course.title}')
+    
+    def create_certificates(self):
+        """Create certificates and templates"""
+        self.stdout.write('🏆 Creating certificates...')
+        
+        # Create certificate templates
+        template_data = [
+            {
+                'name': 'Standard Certificate',
+                'description': 'Standard course completion certificate',
+                'template_html': '<div class="certificate">...</div>'
+            },
+            {
+                'name': 'Premium Certificate',
+                'description': 'Premium certificate with gold border',
+                'template_html': '<div class="certificate premium">...</div>'
+            },
+            {
+                'name': 'Achievement Certificate',
+                'description': 'Certificate for outstanding achievement',
+                'template_html': '<div class="certificate achievement">...</div>'
+            }
+        ]
+        
+        self.templates = []
+        for template_info in template_data:
+            template = Certificate.objects.create(
+                name=template_info['name'],
+                description=template_info['description'],
+                template_html=template_info['template_html']
+            )
+            self.templates.append(template)
+            self.stdout.write(f'   Created template: {template.name}')
+        
+        # Create certificates for completed enrollments
+        for enrollment in Enrollment.objects.filter(completed=True):
+            certificate = Certificate.objects.create(
+                student=enrollment.student,
+                course=enrollment.course,
+                template=random.choice(self.templates),
+                issued_date=enrollment.completed_at,
+                certificate_number=fake.uuid4(),
+                is_valid=True
+            )
+            self.stdout.write(f'   Created certificate for {enrollment.student.first_name} - {enrollment.course.title}')
+    
+    def create_instructor_applications(self):
+        """Create instructor applications"""
+        self.stdout.write('📋 Creating instructor applications...')
+        
+        application_statuses = ['pending', 'approved', 'rejected']
+        
+        for student in self.students:
+            if random.choice([True, False]):  # 50% chance to apply
+                application = InstructorApplication.objects.create(
+                    applicant=student,
+                    bio=fake.paragraph(nb_sentences=3),
+                    expertise=random.choice(['Web Development', 'Data Science', 'Design', 'Marketing']),
+                    experience_years=random.randint(1, 10),
+                    education=fake.sentence(nb_words=8),
+                    portfolio_url=f"https://{fake.domain_name()}",
+                    status=random.choice(application_statuses),
+                    submitted_at=timezone.now() - timedelta(days=random.randint(1, 90))
+                )
+                
+                if application.status != 'pending':
+                    application.reviewed_at = application.submitted_at + timedelta(days=random.randint(1, 14))
+                    application.reviewer_notes = fake.paragraph(nb_sentences=2)
+                    application.save()
+                
+                self.stdout.write(f'   Created application: {student.first_name} - {application.expertise}')
+    
+    def print_summary(self):
+        """Print a summary of created data"""
+        self.stdout.write('\n📊 SEED DATA SUMMARY:')
+        self.stdout.write('=' * 50)
+        
+        # Count objects by model
+        models_to_count = [
+            (User, 'Users'),
+            (Category, 'Categories'),
+            (Course, 'Courses'),
+            (Module, 'Modules'),
+            (Lesson, 'Lessons'),
+            (Assignment, 'Assignments'),
+            (AssignmentSubmission, 'Assignment Submissions'),
+            (Quiz, 'Quizzes'),
+            (Question, 'Questions'),
+            (QuizSubmission, 'Quiz Submissions'),
+            (Enrollment, 'Enrollments'),
+            (Rating, 'Ratings'),
+            (Discussion, 'Discussions'),
+            (Comment, 'Comments'),
+            (LiveSession, 'Live Sessions'),
+            (Payment, 'Payments'),
+            (Certificate, 'Certificates'),
+            (InstructorApplication, 'Instructor Applications'),
+        ]
+        
+        for model, name in models_to_count:
+            count = model.objects.count()
+            self.stdout.write(f'{name}: {count}')
+        
+        self.stdout.write('\n🔑 TEST ACCOUNTS:')
+        self.stdout.write('=' * 30)
+        self.stdout.write('Admin: admin@edulearn.com / admin123')
+        self.stdout.write('Instructor: john.doe@edulearn.com / password123')
+        self.stdout.write('Students:')
+        for student in self.students:
+            self.stdout.write(f'  {student.email} / password123')
+        
+        self.stdout.write('\n🚀 Ready to test the platform!')
+        self.stdout.write('Visit: http://127.0.0.1:8000/')

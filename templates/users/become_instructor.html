@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Become an Instructor{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-tie me-2"></i>
+                        Become an Instructor
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if has_pending_application %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            You already have a pending instructor application. We will review it and get back to you soon.
+                        </div>
+                        <div class="text-center">
+                            <a href="{% url 'users:profile' %}" class="btn btn-primary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Back to Profile
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="mb-4">
+                            <p class="text-muted">
+                                Share your expertise and help others learn by becoming an instructor on our platform. 
+                                Please provide the following information to help us evaluate your application.
+                            </p>
+                        </div>
+
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.resume.id_for_label }}" class="form-label">
+                                    <i class="fas fa-file-upload me-2"></i>
+                                    {{ form.resume.label }}
+                                </label>
+                                {{ form.resume }}
+                                {% if form.resume.help_text %}
+                                    <div class="form-text">{{ form.resume.help_text }}</div>
+                                {% endif %}
+                                {% if form.resume.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.resume.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.cover_letter.id_for_label }}" class="form-label">
+                                    <i class="fas fa-edit me-2"></i>
+                                    {{ form.cover_letter.label }}
+                                </label>
+                                {{ form.cover_letter }}
+                                {% if form.cover_letter.help_text %}
+                                    <div class="form-text">{{ form.cover_letter.help_text }}</div>
+                                {% endif %}
+                                {% if form.cover_letter.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.cover_letter.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Important:</strong> Please ensure your resume and cover letter clearly demonstrate your expertise and teaching experience. 
+                                Applications without sufficient detail may be rejected.
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{% url 'users:profile' %}" class="btn btn-secondary me-md-2">
+                                    <i class="fas fa-times me-2"></i>
+                                    Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Submit Application
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Application Guidelines -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Application Guidelines
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-check-circle text-success me-2"></i>What we look for:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Relevant professional experience</li>
+                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Teaching or training experience</li>
+                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Strong communication skills</li>
+                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Passion for education</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-clock text-warning me-2"></i>Review Process:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Applications reviewed within 3-5 business days</li>
+                                <li><i class="fas fa-arrow-right text-primary me-2"></i>You'll receive an email notification</li>
+                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Approved instructors can start creating courses</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-control, .form-select {
+        border-radius: 0.375rem;
+    }
+    
+    .btn {
+        border-radius: 0.375rem;
+    }
+    
+    .card {
+        border-radius: 0.5rem;
+        border: none;
+    }
+    
+    .card-header {
+        border-radius: 0.5rem 0.5rem 0 0 !important;
+    }
+</style>
+{% endblock %} 
