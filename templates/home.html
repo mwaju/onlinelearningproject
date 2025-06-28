@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome to Online Learning Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="display-4 fw-bold mb-4">Learn Without Limits</h1>
+                <p class="lead mb-4">Start, switch, or advance your career with thousands of courses from expert instructors.</p>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'courses:course_list' %}" class="btn btn-primary btn-lg">Browse Courses</a>
+                    <a href="{% url 'users:register' %}" class="btn btn-outline-primary btn-lg">Sign Up Free</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <img src="https://via.placeholder.com/600x400" alt="Learning Illustration" class="img-fluid rounded shadow">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Why Choose Us?</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-laptop-code fa-3x text-primary mb-3"></i>
+                        <h3 class="card-title h5">Expert-Led Courses</h3>
+                        <p class="card-text">Learn from industry experts who are passionate about teaching.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-certificate fa-3x text-primary mb-3"></i>
+                        <h3 class="card-title h5">Certified Learning</h3>
+                        <p class="card-text">Earn certificates to showcase your skills and advance your career.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                        <h3 class="card-title h5">Interactive Learning</h3>
+                        <p class="card-text">Engage with instructors and peers through live sessions and discussions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Popular Courses Section -->
+<section class="popular-courses-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Popular Courses</h2>
+        <div class="row g-4">
+            {% for course in popular_courses %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <img src="{{ course.thumbnail.url }}" class="card-img-top" alt="{{ course.title }}">
+                    <div class="card-body">
+                        <h3 class="card-title h5">{{ course.title }}</h3>
+                        <p class="card-text">{{ course.description|truncatewords:20 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-primary fw-bold">${{ course.price }}</span>
+                            <a href="{% url 'courses:course_detail' course.id %}" class="btn btn-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-4">
+            <a href="{% url 'courses:course_list' %}" class="btn btn-outline-primary">View All Courses</a>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="testimonials-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">What Our Students Say</h2>
+        <div class="row g-4">
+            {% if testimonials %}
+            {% for testimonial in testimonials %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ testimonial.user.profile_picture.url }}" class="rounded-circle me-3" width="50" height="50" alt="{{ testimonial.user.username }}">
+                            <div>
+                                <h5 class="card-title mb-0">{{ testimonial.user.username }}</h5>
+                                <small class="text-muted">{{ testimonial.course.title }}</small>
+                            </div>
+                        </div>
+                        <p class="card-text">{{ testimonial.content }}</p>
+                        <div class="text-warning">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= testimonial.rating %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <!--generage dummy testimonials-->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{% static 'images/default-profile.png' %}" class="rounded-circle me-3" alt="John Doe">
+                            <div>
+                                <h5 class="card-title mb-0">John Doe</h5>
+                                <small class="text-muted">Python for Data Science</small>
+                            </div>
+                        </div>
+                        <p class="card-text">I never thought I'd be able to learn Python, but this course made it easy and fun!</p>
+                        <div class="text-warning">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{% static 'images/default-profile.png' %}" class="rounded-circle me-3" alt="Jane Doe">
+                            <div>
+                                <h5 class="card-title mb-0">Jane Doe</h5>
+                                <small class="text-muted">Web Development</small>
+                            </div>
+                        </div>
+                        <p class="card-text">I was hesitant to spend money on an online course, but this one was worth every penny.</p>
+                        <div class="text-warning">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{% static 'images/default-profile.png' %}" class="rounded-circle me-3" alt="Bob Smith">
+                            <div>
+                                <h5 class="card-title mb-0">Bob Smith</h5>
+                                <small class="text-muted">Machine Learning</small>
+                            </div>
+                        </div>
+                        <p class="card-text">I've tried many online courses, but this one was the most comprehensive and well-structured.</p>
+                        <div class="text-warning">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <h2 class="mb-4">Ready to Start Learning?</h2>
+                <p class="lead mb-4">Join thousands of students worldwide and start your learning journey today.</p>
+                <a href="{% url 'users:register' %}" class="btn btn-primary btn-lg">Get Started Now</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

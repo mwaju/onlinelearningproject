@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}About Us - Online Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style type="text/css">
+.about-header {
+    background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+    color: white;
+    padding: 4rem 0;
+    margin-bottom: 3rem;
+}
+
+.team-member {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.team-member img {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+    object-fit: cover;
+}
+
+.mission-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.mission-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- About Header -->
+<section class="about-header">
+    <div class="container">
+        <div class="row justify-content-center text-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-4">About Our Platform</h1>
+                <p class="lead">Empowering learners worldwide with quality education and innovative learning experiences.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Mission Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mission-card">
+                    <h2 class="h3 mb-4">Our Mission</h2>
+                    <p class="mb-4">We are dedicated to making quality education accessible to everyone, everywhere. Our platform connects passionate instructors with eager learners, creating a vibrant community of knowledge sharing and growth.</p>
+                    <p>Through innovative technology and engaging content, we strive to transform the way people learn and teach online.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mission-card">
+                    <h2 class="h3 mb-4">Our Vision</h2>
+                    <p class="mb-4">We envision a world where anyone can learn anything, anytime, anywhere. By breaking down barriers to education, we empower individuals to achieve their full potential and make a positive impact in their communities.</p>
+                    <p>Our platform is more than just a learning space—it's a catalyst for personal and professional growth.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">10K+</div>
+                    <p class="mb-0">Active Students</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">500+</div>
+                    <p class="mb-0">Courses</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">200+</div>
+                    <p class="mb-0">Instructors</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">50+</div>
+                    <p class="mb-0">Countries</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Team Section -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Meet Our Team</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="team-member">
+                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop" alt="John Doe">
+                    <h3 class="h5">John Doe</h3>
+                    <p class="text-muted">Founder & CEO</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="team-member">
+                    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop" alt="Jane Smith">
+                    <h3 class="h5">Jane Smith</h3>
+                    <p class="text-muted">Head of Education</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="team-member">
+                    <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop" alt="Mike Johnson">
+                    <h3 class="h5">Mike Johnson</h3>
+                    <p class="text-muted">Technical Director</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

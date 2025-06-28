@@ -1,0 +1,276 @@
+{% extends 'instructor/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Quizzes{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'instructor:create_quiz' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> New Quiz
+    </a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" name="q" class="form-control" placeholder="Search quizzes..." value="{{ query }}">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="status" class="form-select" onchange="this.form.submit()">
+                            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Quizzes</option>
+                            <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Published</option>
+                            <option value="drafts" {% if status_filter == 'drafts' %}selected{% endif %}>Drafts</option>
+                            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                            <option value="upcoming" {% if status_filter == 'upcoming' %}selected{% endif %}>Upcoming</option>
+                            <option value="ended" {% if status_filter == 'ended' %}selected{% endif %}>Ended</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="course" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Courses</option>
+                            {% for course in request.user.instructor_courses.all %}
+                                <option value="{{ course.id }}" {% if course.id|stringformat:"s" == request.GET.course %}selected{% endif %}>
+                                    {{ course.title }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-0">
+                {% if quizzes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Course</th>
+                                    <th>Availability</th>
+                                    <th>Questions</th>
+                                    <th>Submissions</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for quiz in quizzes %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'instructor:quiz_detail' quiz.id %}" class="fw-bold">
+                                            {{ quiz.title }}
+                                            {% if not quiz.is_published %}
+                                                <span class="badge bg-warning text-dark ms-2">Draft</span>
+                                            {% endif %}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if quiz.course %}
+                                        <a href="{% url 'courses:course_detail' slug=quiz.course.slug %}" class="text-muted">
+                                            {{ quiz.course.title|truncatechars:30 }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">No course</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if quiz.is_available %}
+                                            <span class="text-success">
+                                                <i class="fas fa-circle-check me-1"></i> Active
+                                                <small class="d-block text-muted">Ends {{ quiz.available_until|timeuntil }}</small>
+                                            </span>
+                                        {% elif quiz.available_until < now %}
+                                            <span class="text-muted">
+                                                <i class="far fa-calendar-times me-1"></i> Ended
+                                                <small class="d-block">{{ quiz.available_until|timesince }} ago</small>
+                                            </span>
+                                        {% else %}
+                                            <span class="text-info">
+                                                <i class="far fa-clock me-1"></i> Starts in {{ quiz.available_from|timeuntil }}
+                                                <small class="d-block">{{ quiz.available_from|date:"M j, Y" }}</small>
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ quiz.questions.count }} question{{ quiz.questions.count|pluralize }}
+                                        <small class="d-block text-muted">{{ quiz.total_points }} points</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                {% with total=quiz.submissions.count graded=quiz.submissions.graded.count %}
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     style="width: {% if total > 0 %}{{ graded|div:total|mul:100 }}{% else %}0{% endif %}%" 
+                                                     aria-valuenow="{{ graded }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+                                                </div>
+                                                {% endwith %}
+                                            </div>
+                                            <small class="text-muted">
+                                                {{ quiz.submissions.graded.count }}/{{ quiz.submissions.count }}
+                                            </small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if quiz.is_published %}
+                                            {% if quiz.is_available %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% elif quiz.available_until < now %}
+                                                <span class="badge bg-secondary">Ended</span>
+                                            {% else %}
+                                                <span class="badge bg-info">Upcoming</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Draft</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'instructor:quiz_detail' quiz.id %}" 
+                                               class="btn btn-sm btn-outline-primary"
+                                               data-bs-toggle="tooltip" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="#" class="btn btn-sm btn-outline-secondary"
+                                               data-bs-toggle="tooltip" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
+                                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                                <span class="visually-hidden">Toggle Dropdown</span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                {% if not quiz.is_published %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'instructor:publish_quiz' quiz.id %}">
+                                                        <i class="fas fa-check-circle me-2 text-success"></i>Publish
+                                                    </a>
+                                                </li>
+                                                {% endif %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'instructor:duplicate_quiz' quiz.id %}">
+                                                        <i class="fas fa-copy me-2"></i>Duplicate
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteQuizModal{{ quiz.id }}">
+                                                        <i class="fas fa-trash-alt me-2"></i>Delete
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <!-- Delete Quiz Modal -->
+                                        <div class="modal fade" id="deleteQuizModal{{ quiz.id }}" tabindex="-1" aria-labelledby="deleteQuizModalLabel{{ quiz.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="deleteQuizModalLabel{{ quiz.id }}">Delete Quiz</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Are you sure you want to delete the quiz <strong>{{ quiz.title }}</strong>?</p>
+                                                        <p class="text-danger">This action cannot be undone. All submissions and grades will be permanently deleted.</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <form method="post" action="{% url 'instructor:delete_quiz' quiz.id %}" class="d-inline">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn-danger">Delete Quiz</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center p-5">
+                        <div class="mb-3">
+                            <i class="fas fa-question-circle fa-4x text-muted"></i>
+                        </div>
+                        <h5>No quizzes found</h5>
+                        <p class="text-muted">
+                            {% if query or status_filter != 'all' %}
+                                Try adjusting your search or filter criteria
+                            {% else %}
+                                Get started by creating a new quiz
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'instructor:create_quiz' %}" class="btn btn-primary mt-2">
+                            <i class="fas fa-plus me-1"></i> Create Quiz
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            
+            {% if is_paginated %}
+            <div class="card-footer">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    // Enable tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

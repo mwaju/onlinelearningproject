@@ -1,0 +1,348 @@
+{% extends 'instructor/base.html' %}
+{% load humanize %}
+
+{% block page_title %}{{ assignment.title }}{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        <a href="{% url 'instructor:download_submissions' assignment.id %}" class="btn btn-outline-primary">
+            <i class="fas fa-download me-1"></i> Download Submissions
+        </a>
+        <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="visually-hidden">Toggle Dropdown</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Edit Assignment</a></li>
+            <li><a class="dropdown-item" href="#"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash-alt me-2"></i>Delete</a></li>
+        </ul>
+    </div>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="row">
+    <!-- Assignment Info -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Assignment Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Course</dt>
+                    <dd>
+                        <a href="{% url 'courses:course_detail' slug=assignment.course.slug %}">
+                            {{ assignment.course.title }}
+                        </a>
+                    </dd>
+                    
+                    <dt class="mt-3">Due Date</dt>
+                    <dd>
+                        {% if assignment.is_past_due %}
+                            <span class="text-danger">
+                                {{ assignment.due_date|date:"F j, Y \a\t g:i A" }}
+                                <small class="d-block">({{ assignment.due_date|timesince }} ago)</small>
+                            </span>
+                        {% else %}
+                            {{ assignment.due_date|date:"F j, Y \a\t g:i A" }}
+                            <small class="d-block text-muted">(Due in {{ assignment.due_date|timeuntil }})</small>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="mt-3">Points</dt>
+                    <dd>{{ assignment.total_points }} points</dd>
+                    
+                    <dt class="mt-3">Submissions</dt>
+                    <dd>
+                        <div class="d-flex align-items-center">
+                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                {% with total=assignment.submissions.count graded=assignment.submissions.graded.count %}
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {% if total > 0 %}{{ graded|div:total|mul:100 }}{% else %}0{% endif %}%" 
+                                     aria-valuenow="{{ graded }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+                                </div>
+                                {% endwith %}
+                            </div>
+                            <span class="small">
+                                {{ assignment.submissions.graded.count }}/{{ assignment.submissions.count }}
+                            </span>
+                        </div>
+                    </dd>
+                    
+                    <dt class="mt-3">Average Score</dt>
+                    <dd>
+                        {% if assignment.average_score is not None %}
+                            {{ assignment.average_score|floatformat:1 }}%
+                            <small class="text-muted">
+                                ({{ assignment.submissions.graded.count }} of {{ assignment.submissions.count }} graded)
+                            </small>
+                        {% else %}
+                            <span class="text-muted">No submissions yet</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+                
+                <div class="d-grid gap-2 mt-4">
+                    <a href="#submissions" class="btn btn-primary">
+                        <i class="fas fa-list-check me-1"></i> Grade Submissions
+                    </a>
+                    <a href="#" class="btn btn-outline-secondary">
+                        <i class="fas fa-chart-bar me-1"></i> View Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Description</h5>
+            </div>
+            <div class="card-body">
+                {% if assignment.description %}
+                    {{ assignment.description|linebreaks }}
+                {% else %}
+                    <p class="text-muted">No description provided.</p>
+                {% endif %}
+                
+                {% if assignment.attachments.exists %}
+                    <hr>
+                    <h6>Attachments</h6>
+                    <ul class="list-unstyled">
+                        {% for attachment in assignment.attachments.all %}
+                        <li class="mb-1">
+                            <a href="{{ attachment.file.url }}" class="text-decoration-none" target="_blank">
+                                <i class="fas fa-paperclip me-1"></i> {{ attachment.filename }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Submissions -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" id="submissions">Submissions</h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-filter me-1"></i>
+                        {% if filter_status == 'all' %}All{% elif filter_status == 'graded' %}Graded{% else %}Ungraded{% endif %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item {% if filter_status == 'all' %}active{% endif %}" 
+                              href="?status=all">All Submissions</a></li>
+                        <li><a class="dropdown-item {% if filter_status == 'graded' %}active{% endif %}" 
+                              href="?status=graded">Graded</a></li>
+                        <li><a class="dropdown-item {% if filter_status == 'ungraded' %}active{% endif %}" 
+                              href="?status=ungraded">Ungraded</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                {% if submissions %}
+                    <div class="list-group list-group-flush">
+                        {% for submission in submissions %}
+                        <a href="#submission-{{ submission.id }}" 
+                           class="list-group-item list-group-item-action"
+                           data-bs-toggle="collapse" 
+                           aria-expanded="false" 
+                           aria-controls="submission-{{ submission.id }}">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">
+                                        {{ submission.student.get_full_name|default:submission.student.username }}
+                                        {% if submission.is_late %}
+                                            <span class="badge bg-warning text-dark ms-2">Late</span>
+                                        {% endif %}
+                                    </h6>
+                                    <small class="text-muted">Submitted {{ submission.submitted_at|timesince }} ago</small>
+                                </div>
+                                <div class="text-end">
+                                    {% if submission.is_graded %}
+                                        <span class="badge bg-success">
+                                            {{ submission.score|floatformat:1 }} / {{ assignment.total_points }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Ungraded</span>
+                                    {% endif %}
+                                    <i class="fas fa-chevron-down ms-2"></i>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="collapse" id="submission-{{ submission.id }}">
+                            <div class="p-3 bg-light">
+                                <div class="mb-3">
+                                    <h6>Submission Notes</h6>
+                                    {% if submission.notes %}
+                                        <p class="mb-0">{{ submission.notes|linebreaksbr }}</p>
+                                    {% else %}
+                                        <p class="text-muted mb-0">No notes provided.</p>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if submission.attachments.exists %}
+                                <div class="mb-3">
+                                    <h6>Attachments</h6>
+                                    <ul class="list-unstyled">
+                                        {% for attachment in submission.attachments.all %}
+                                        <li class="mb-1">
+                                            <a href="{{ attachment.file.url }}" class="text-decoration-none" target="_blank">
+                                                <i class="fas fa-paperclip me-1"></i> {{ attachment.filename }}
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                                
+                                <form method="post" action="{% url 'instructor:grade_assignment' assignment.id submission.id %}" class="mt-3">
+                                    {% csrf_token %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label for="score-{{ submission.id }}" class="form-label">Score (out of {{ assignment.total_points }})</label>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="score-{{ submission.id }}" 
+                                                   name="score" 
+                                                   min="0" 
+                                                   max="{{ assignment.total_points }}" 
+                                                   step="0.1"
+                                                   value="{{ submission.score|default:'' }}"
+                                                   {% if submission.is_graded %}disabled{% endif %}>
+                                        </div>
+                                        <div class="col-md-12 mt-3">
+                                            <label for="feedback-{{ submission.id }}" class="form-label">Feedback</label>
+                                            <textarea class="form-control" 
+                                                      id="feedback-{{ submission.id }}" 
+                                                      name="feedback" 
+                                                      rows="3"
+                                                      {% if submission.is_graded %}disabled{% endif %}>{{ submission.feedback|default:'' }}</textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between mt-3">
+                                        <div>
+                                            {% if submission.is_graded %}
+                                                <span class="badge bg-success">
+                                                    Graded on {{ submission.graded_at|date:"M j, Y" }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            {% if not submission.is_graded %}
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-save me-1"></i> Save Grade
+                                                </button>
+                                            {% else %}
+                                                <button type="button" 
+                                                        class="btn btn-outline-secondary btn-sm"
+                                                        onclick="enableEditing('{{ submission.id }}')">
+                                                    <i class="fas fa-edit me-1"></i> Edit Grade
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center p-5">
+                        <div class="mb-3">
+                            <i class="fas fa-inbox fa-4x text-muted"></i>
+                        </div>
+                        <h5>No submissions yet</h5>
+                        <p class="text-muted">
+                            {% if filter_status == 'all' %}
+                                No students have submitted this assignment yet.
+                            {% else %}
+                                No {{ filter_status }} submissions found.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            {% if is_paginated %}
+            <div class="card-footer">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_status != 'all' %}&status={{ filter_status }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if filter_status != 'all' %}&status={{ filter_status }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_status != 'all' %}&status={{ filter_status }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    // Enable tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Initialize popovers
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl);
+        });
+    });
+    
+    // Enable editing of graded submissions
+    function enableEditing(submissionId) {
+        const scoreInput = document.getElementById(`score-${submissionId}`);
+        const feedbackInput = document.getElementById(`feedback-${submissionId}`);
+        const form = scoreInput.closest('form');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        // Enable inputs
+        scoreInput.disabled = false;
+        feedbackInput.disabled = false;
+        
+        // Show save button
+        submitBtn.style.display = 'inline-block';
+        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Changes';
+        submitBtn.classList.remove('btn-outline-secondary');
+        submitBtn.classList.add('btn-primary');
+    }
+</script>
+{% endblock %}

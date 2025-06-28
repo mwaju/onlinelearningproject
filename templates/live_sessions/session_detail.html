@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ session.title }} - Live Session{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <!-- Video Container -->
+            <div class="position-relative" style="height: calc(100vh - 56px);">
+                {% if session.status == 'live' %}
+                <div id="videoContainer" class="w-100 h-100 bg-black">
+                    <!-- Video will be loaded here via WebRTC -->
+                </div>
+                {% else %}
+                <div class="w-100 h-100 bg-black d-flex align-items-center justify-content-center">
+                    <div class="text-center text-white">
+                        <h2 class="h4 mb-3">Session {{ session.status }}</h2>
+                        {% if session.status == 'upcoming' %}
+                        <p class="mb-4">This session will start in:</p>
+                        <div id="countdown" class="h2 mb-4"></div>
+                        <button class="btn btn-primary" onclick="registerForSession({{ session.id }})">
+                            Register Now
+                        </button>
+                        {% else %}
+                        <p class="mb-4">This session has ended.</p>
+                        {% if session.recording_url %}
+                        <a href="{{ session.recording_url }}" class="btn btn-primary" target="_blank">
+                            Watch Recording
+                        </a>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-3">
+            <div class="h-100 border-start">
+                <!-- Session Info -->
+                <div class="p-3 border-bottom">
+                    <h1 class="h4 mb-3">{{ session.title }}</h1>
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ session.instructor.profile_picture }}" 
+                             class="rounded-circle me-2" 
+                             width="32" 
+                             height="32" 
+                             alt="{{ session.instructor.name }}">
+                        <div>
+                            <div class="fw-bold">{{ session.instructor.name }}</div>
+                            <small class="text-muted">Instructor</small>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted mb-2">
+                        <small><i class="fas fa-clock me-1"></i> Duration</small>
+                        <small>{{ session.duration }} minutes</small>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted">
+                        <small><i class="fas fa-users me-1"></i> Participants</small>
+                        <small>{{ session.current_participants }}/{{ session.max_participants }}</small>
+                    </div>
+                </div>
+
+                <!-- Chat Section -->
+                {% if session.status == 'live' %}
+                <div class="d-flex flex-column" style="height: calc(100vh - 300px);">
+                    <div class="p-3 border-bottom">
+                        <h2 class="h5 mb-0">Live Chat</h2>
+                    </div>
+                    <div class="flex-grow-1 overflow-auto p-3" id="chatMessages">
+                        <!-- Chat messages will be loaded here via WebSocket -->
+                    </div>
+                    <div class="p-3 border-top">
+                        <form id="chatForm" class="d-flex">
+                            <input type="text" 
+                                   class="form-control me-2" 
+                                   placeholder="Type your message..."
+                                   id="chatInput">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-3">
+                    <h2 class="h5 mb-3">Session Description</h2>
+                    <p class="text-muted">{{ session.description }}</p>
+                    {% if session.status == 'upcoming' %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You'll be able to join the chat when the session starts.
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if session.status == 'live' %}
+    // Initialize WebRTC
+    initializeWebRTC();
+    
+    // Initialize WebSocket for chat
+    initializeWebSocket();
+    {% elif session.status == 'upcoming' %}
+    // Initialize countdown
+    initializeCountdown();
+    {% endif %}
+});
+
+{% if session.status == 'live' %}
+function initializeWebRTC() {
+    // WebRTC initialization code will be added here
+    // This will handle video streaming between participants
+}
+
+function initializeWebSocket() {
+    const ws = new WebSocket(`ws://${window.location.host}/ws/live-sessions/{{ session.id }}/`);
+    const chatMessages = document.getElementById('chatMessages');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+
+    ws.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const messageHtml = `
+            <div class="mb-3">
+                <div class="d-flex align-items-center mb-1">
+                    <img src="${data.user.profile_picture}" 
+                         class="rounded-circle me-2" 
+                         width="24" 
+                         height="24" 
+                         alt="${data.user.name}">
+                    <div>
+                        <span class="fw-bold">${data.user.name}</span>
+                        <small class="text-muted ms-2">${new Date(data.timestamp).toLocaleTimeString()}</small>
+                    </div>
+                </div>
+                <p class="mb-0">${data.message}</p>
+            </div>
+        `;
+        chatMessages.insertAdjacentHTML('beforeend', messageHtml);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const message = chatInput.value.trim();
+        if (message) {
+            ws.send(JSON.stringify({
+                message: message
+            }));
+            chatInput.value = '';
+        }
+    });
+}
+{% elif session.status == 'upcoming' %}
+function initializeCountdown() {
+    const countdownElement = document.getElementById('countdown');
+    const startTime = new Date('{{ session.start_time }}').getTime();
+
+    function updateCountdown() {
+        const now = new Date().getTime();
+        const distance = startTime - now;
+
+        if (distance < 0) {
+            countdownElement.innerHTML = 'Starting...';
+            setTimeout(() => window.location.reload(), 1000);
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        countdownElement.innerHTML = `
+            ${days}d ${hours}h ${minutes}m ${seconds}s
+        `;
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+}
+{% endif %}
+
+// Global function for session registration
+async function registerForSession(sessionId) {
+    try {
+        await API.liveSessions.register(sessionId);
+        showAlert('Successfully registered for the session', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+        showAlert('Failed to register for the session', 'danger');
+    }
+}
+
+// Helper function to show alerts
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+    alertDiv.style.zIndex = '1050';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,306 @@
+{% extends 'instructor/base.html' %}
+{% load static %}
+
+{% block page_title %}Bulk Grade Assignments{% endblock %}
+
+{% block dashboard_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Bulk Grade Assignments</h5>
+                <div>
+                    <a href="{% url 'instructor:instructor_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="course_filter" class="form-label">Filter by Course</label>
+                                <select name="course_id" id="course_filter" class="form-select" onchange="this.form.submit()">
+                                    <option value="">All Courses</option>
+                                    {% for course in courses %}
+                                        <option value="{{ course.id }}" {% if selected_course == course.id %}selected{% endif %}>
+                                            {{ course.title }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="assignment_filter" class="form-label">Filter by Assignment</label>
+                                <select name="assignment_id" id="assignment_filter" class="form-select" onchange="this.form.submit()" {% if not selected_course %}disabled{% endif %}>
+                                    <option value="">All Assignments</option>
+                                    {% if selected_course %}
+                                        {% for assignment in assignments %}
+                                            <option value="{{ assignment.id }}" {% if selected_assignment == assignment.id %}selected{% endif %}>
+                                                {{ assignment.title }}
+                                            </option>
+                                        {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="d-flex justify-content-end align-items-center h-100">
+                            <div class="me-3">
+                                <span class="badge bg-primary">{{ submissions.paginator.count }}</span> submissions to grade
+                            </div>
+                            <a href="#" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulkGradeModal">
+                                <i class="fas fa-tasks me-1"></i> Bulk Grade
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {% if submissions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Assignment</th>
+                                    <th>Course</th>
+                                    <th>Submitted</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for submission in submissions %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm me-2">
+                                                    <span class="avatar-text rounded-circle bg-primary text-white">
+                                                        {{ submission.student.get_initials }}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold">
+                                                        {{ submission.student.get_full_name|default:submission.student.username }}
+                                                    </div>
+                                                    <small class="text-muted">{{ submission.student.email }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ submission.assignment.title }}</div>
+                                            <small class="text-muted">Due {{ submission.assignment.due_date|date:"M j, Y" }}</small>
+                                        </td>
+                                        <td>{{ submission.assignment.course.title }}</td>
+                                        <td>
+                                            {% if submission.submitted_at %}
+                                                {{ submission.submitted_at|timesince }} ago
+                                                <div class="text-muted small">{{ submission.submitted_at|date:"M j, Y g:i A" }}</div>
+                                            {% else %}
+                                                <span class="text-muted">Not submitted</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'instructor:grade_assignment_submission' assignment_id=submission.assignment.id submission_id=submission.id %}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i> Grade
+                                                </a>
+                                                <a href="{% url 'instructor:assignment_detail' assignment_id=submission.assignment.id %}" 
+                                                   class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-search"></i> View
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if submissions.has_other_pages %}
+                        <nav aria-label="Page navigation" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if submissions.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ submissions.previous_page_number }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_assignment %}&assignment_id={{ selected_assignment }}{% endif %}" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&laquo;</span>
+                                    </li>
+                                {% endif %}
+
+                                {% for i in submissions.paginator.page_range %}
+                                    {% if submissions.number == i %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ i }} <span class="visually-hidden">(current)</span></span>
+                                        </li>
+                                    {% else %}
+                                        {% if i > submissions.number|add:'-3' and i < submissions.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ i }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_assignment %}&assignment_id={{ selected_assignment }}{% endif %}">{{ i }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if submissions.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ submissions.next_page_number }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_assignment %}&assignment_id={{ selected_assignment }}{% endif %}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&raquo;</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="fas fa-check-circle fa-4x text-success"></i>
+                        </div>
+                        <h5>No submissions to grade!</h5>
+                        <p class="text-muted">All caught up with grading for the selected filters.</p>
+                        <a href="{% url 'instructor:bulk_grade_assignments' %}" class="btn btn-outline-primary mt-2">
+                            <i class="fas fa-sync-alt me-1"></i> Reset Filters
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Grade Modal -->
+<div class="modal fade" id="bulkGradeModal" tabindex="-1" aria-labelledby="bulkGradeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkGradeModalLabel">Bulk Grade Assignments</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'instructor:bulk_grade_assignments' %}" id="bulkGradeForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You can apply the same grade and feedback to multiple submissions at once.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="grade" class="form-label">Grade</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="grade" name="grade" min="0" step="0.1" required>
+                            <span class="input-group-text">/ 100</span>
+                        </div>
+                        <div class="form-text">Enter the grade to apply to selected submissions</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="feedback" class="form-label">Feedback (Optional)</label>
+                        <textarea class="form-control" id="feedback" name="feedback" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="applyToAll" name="apply_to_all">
+                        <label class="form-check-label" for="applyToAll">
+                            Apply to all {{ submissions.paginator.count }} submissions matching current filters
+                        </label>
+                    </div>
+                    
+                    <div id="selectedSubmissionsContainer">
+                        <label class="form-label">Selected Submissions</label>
+                        <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                            {% for submission in submissions %}
+                                <div class="form-check">
+                                    <input class="form-check-input submission-checkbox" type="checkbox" 
+                                           name="submission_ids" value="{{ submission.id }}" id="submission_{{ submission.id }}">
+                                    <label class="form-check-label" for="submission_{{ submission.id }}">
+                                        {{ submission.student.get_full_name|default:submission.student.username }} - {{ submission.assignment.title }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text">Select submissions to apply the grade to</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Apply Grade</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle course filter change to update assignments
+    const courseFilter = document.getElementById('course_filter');
+    const assignmentFilter = document.getElementById('assignment_filter');
+    
+    if (courseFilter) {
+        courseFilter.addEventListener('change', function() {
+            const courseId = this.value;
+            const url = new URL(window.location.href);
+            
+            // Update URL parameters
+            if (courseId) {
+                url.searchParams.set('course_id', courseId);
+                url.searchParams.delete('assignment_id'); // Reset assignment filter
+            } else {
+                url.searchParams.delete('course_id');
+                url.searchParams.delete('assignment_id');
+            }
+            
+            // Reload page with new filters
+            window.location.href = url.toString();
+        });
+    }
+    
+    // Handle apply to all checkbox
+    const applyToAllCheckbox = document.getElementById('applyToAll');
+    const submissionCheckboxes = document.querySelectorAll('.submission-checkbox');
+    const selectedSubmissionsContainer = document.getElementById('selectedSubmissionsContainer');
+    
+    if (applyToAllCheckbox && selectedSubmissionsContainer) {
+        applyToAllCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                selectedSubmissionsContainer.style.display = 'none';
+                // Uncheck all individual checkboxes
+                submissionCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            } else {
+                selectedSubmissionsContainer.style.display = 'block';
+            }
+        });
+    }
+    
+    // Form validation
+    const bulkGradeForm = document.getElementById('bulkGradeForm');
+    if (bulkGradeForm) {
+        bulkGradeForm.addEventListener('submit', function(e) {
+            const applyToAll = document.getElementById('applyToAll').checked;
+            const hasSelectedSubmissions = Array.from(submissionCheckboxes).some(checkbox => checkbox.checked);
+            
+            if (!applyToAll && !hasSelectedSubmissions) {
+                e.preventDefault();
+                alert('Please select at least one submission or check "Apply to all"');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

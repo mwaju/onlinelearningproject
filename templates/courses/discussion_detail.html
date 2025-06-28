@@ -1,0 +1,461 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ discussion.title }} - {{ course.title }} - Online Learning Platform{% endblock %}
+
+{% block content %}
+<div class="discussion-detail-container">
+    <!-- Sidebar -->
+    <div class="course-sidebar">
+        <div class="sidebar-header">
+            <h2 class="h5 mb-0">{{ course.title }}</h2>
+            <button class="btn-close" id="sidebarToggle"></button>
+        </div>
+        <div class="sidebar-content">
+            <div class="progress mb-3">
+                <div class="progress-bar" role="progressbar" style="width: {{ progress.percentage }}%">
+                    {{ progress.percentage }}% Complete
+                </div>
+            </div>
+            <div class="accordion" id="courseModules">
+                {% for module in course.modules.all %}
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#module{{ module.id }}">
+                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                <span>{{ module.title }}</span>
+                                <span class="badge bg-secondary">{{ module.lessons.count }} Lessons</span>
+                            </div>
+                        </button>
+                    </h3>
+                    <div id="module{{ module.id }}" class="accordion-collapse collapse" data-bs-parent="#courseModules">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                                {% for lesson in module.lessons.all %}
+                                <li class="list-group-item">
+                                    <a href="{% url 'lesson_detail' course.slug lesson.id %}" class="d-flex justify-content-between align-items-center text-decoration-none">
+                                        <div>
+                                            <i class="fas {% if lesson.is_completed %}fa-check-circle text-success{% else %}fa-play-circle{% endif %} me-2"></i>
+                                            {{ lesson.title }}
+                                        </div>
+                                        <span class="text-muted">{{ lesson.duration }} min</span>
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="course-content">
+        <div class="content-header">
+            <button class="btn btn-link" id="sidebarToggleBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="d-flex align-items-center">
+                <div class="dropdown">
+                    <button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'course_learn' course.slug %}">Back to Learning</a></li>
+                        <li><a class="dropdown-item" href="{% url 'course_discussions' course.slug %}">All Discussions</a></li>
+                        <li><a class="dropdown-item" href="{% url 'course_resources' course.slug %}">Resources</a></li>
+                        <li><a class="dropdown-item" href="{% url 'course_certificate' course.slug %}">Certificate</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-body">
+            <div class="discussion-container">
+                <!-- Discussion Header -->
+                <div class="discussion-header mb-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h1 class="h3 mb-2">{{ discussion.title }}</h1>
+                            <div class="d-flex align-items-center text-muted">
+                                <img src="{{ discussion.user.profile_picture.url }}" class="rounded-circle me-2" width="32" height="32" alt="{{ discussion.user.username }}">
+                                <span>{{ discussion.user.get_full_name }}</span>
+                                <span class="mx-2">•</span>
+                                <span>{{ discussion.created_at|timesince }} ago</span>
+                                {% if discussion.is_closed %}
+                                <span class="mx-2">•</span>
+                                <span class="badge bg-secondary">Closed</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if discussion.user == request.user or request.user.is_staff %}
+                        <div class="dropdown">
+                            <button class="btn btn-link" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editDiscussionModal">
+                                        <i class="fas fa-edit me-2"></i> Edit
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item text-danger" id="deleteDiscussion">
+                                        <i class="fas fa-trash me-2"></i> Delete
+                                    </button>
+                                </li>
+                                {% if not discussion.is_closed %}
+                                <li>
+                                    <button class="dropdown-item" id="closeDiscussion">
+                                        <i class="fas fa-lock me-2"></i> Close
+                                    </button>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Discussion Content -->
+                <div class="discussion-content card mb-4">
+                    <div class="card-body">
+                        {{ discussion.content|linebreaks }}
+                    </div>
+                </div>
+
+                <!-- Comments Section -->
+                <div class="comments-section">
+                    <h2 class="h4 mb-4">Comments ({{ discussion.comments.count }})</h2>
+
+                    <!-- Comment Form -->
+                    {% if not discussion.is_closed %}
+                    <div class="comment-form card mb-4">
+                        <div class="card-body">
+                            <form id="commentForm" method="post" action="{% url 'add_comment' course.slug discussion.id %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <textarea class="form-control" name="content" rows="3" placeholder="Write a comment..." required></textarea>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-primary">Post Comment</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Comments List -->
+                    <div class="comments-list">
+                        {% for comment in discussion.comments.all %}
+                        <div class="comment-item card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ comment.user.profile_picture.url }}" class="rounded-circle me-2" width="32" height="32" alt="{{ comment.user.username }}">
+                                        <div>
+                                            <h3 class="h6 mb-0">{{ comment.user.get_full_name }}</h3>
+                                            <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
+                                        </div>
+                                    </div>
+                                    {% if comment.user == request.user or request.user.is_staff %}
+                                    <div class="dropdown">
+                                        <button class="btn btn-link btn-sm" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button class="dropdown-item edit-comment" data-id="{{ comment.id }}">
+                                                    <i class="fas fa-edit me-2"></i> Edit
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button class="dropdown-item text-danger delete-comment" data-id="{{ comment.id }}">
+                                                    <i class="fas fa-trash me-2"></i> Delete
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="comment-content">
+                                    {{ comment.content|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-info">
+                            No comments yet. Be the first to comment!
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Discussion Modal -->
+<div class="modal fade" id="editDiscussionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Discussion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editDiscussionForm" method="post" action="{% url 'edit_discussion' course.slug discussion.id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="editTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="editTitle" name="title" value="{{ discussion.title }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editContent" class="form-label">Content</label>
+                        <textarea class="form-control" id="editContent" name="content" rows="5" required>{{ discussion.content }}</textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.discussion-detail-container {
+    display: flex;
+    height: calc(100vh - 56px);
+}
+
+.course-sidebar {
+    width: 300px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.course-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.content-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.content-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+.discussion-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.comment-item {
+    transition: transform 0.2s;
+}
+
+.comment-item:hover {
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .course-sidebar {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        bottom: 0;
+        z-index: 1000;
+        transform: translateX(-100%);
+    }
+
+    .course-sidebar.show {
+        transform: translateX(0);
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sidebar toggle functionality
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const courseSidebar = document.querySelector('.course-sidebar');
+
+    function toggleSidebar() {
+        courseSidebar.classList.toggle('show');
+    }
+
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    sidebarToggle.addEventListener('click', toggleSidebar);
+
+    // Delete discussion
+    const deleteDiscussionBtn = document.getElementById('deleteDiscussion');
+    if (deleteDiscussionBtn) {
+        deleteDiscussionBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this discussion?')) {
+                fetch("{% url 'delete_discussion' course.slug discussion.id %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = "{% url 'course_discussions' course.slug %}";
+                    } else {
+                        alert('Failed to delete discussion. Please try again.');
+                    }
+                });
+            }
+        });
+    }
+
+    // Close discussion
+    const closeDiscussionBtn = document.getElementById('closeDiscussion');
+    if (closeDiscussionBtn) {
+        closeDiscussionBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to close this discussion?')) {
+                fetch("{% url 'close_discussion' course.slug discussion.id %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to close discussion. Please try again.');
+                    }
+                });
+            }
+        });
+    }
+
+    // Edit comment
+    const editCommentButtons = document.querySelectorAll('.edit-comment');
+    editCommentButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const commentId = this.dataset.id;
+            const commentContent = this.closest('.comment-item').querySelector('.comment-content').textContent.trim();
+            
+            // Create and show edit modal
+            const modal = new bootstrap.Modal(document.createElement('div'));
+            modal.element.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Comment</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editCommentForm">
+                                <div class="mb-3">
+                                    <textarea class="form-control" name="content" rows="3" required>${commentContent}</textarea>
+                                </div>
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal.element);
+            modal.show();
+
+            // Handle form submission
+            const form = modal.element.querySelector('#editCommentForm');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const content = this.querySelector('[name="content"]').value;
+
+                fetch(`/comments/${commentId}/edit/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                    body: JSON.stringify({ content }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to edit comment. Please try again.');
+                    }
+                });
+            });
+
+            // Clean up modal on hide
+            modal.element.addEventListener('hidden.bs.modal', function() {
+                document.body.removeChild(modal.element);
+            });
+        });
+    });
+
+    // Delete comment
+    const deleteCommentButtons = document.querySelectorAll('.delete-comment');
+    deleteCommentButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const commentId = this.dataset.id;
+            if (confirm('Are you sure you want to delete this comment?')) {
+                fetch(`/comments/${commentId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to delete comment. Please try again.');
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

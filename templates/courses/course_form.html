@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }} - Online Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.form-title {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+}
+
+.form-select {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+}
+
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+}
+
+.thumbnail-preview {
+    max-width: 200px;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.btn-submit {
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="form-container">
+        <h1 class="form-title">{{ title }}</h1>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="id_title" class="form-label">Course Title</label>
+                {% render_field form.title class="form-control" placeholder="Enter course title" %}
+                {% if form.title.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.title.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_description" class="form-label">Description</label>
+                {% render_field form.description class="form-control" rows="4" placeholder="Enter course description" %}
+                {% if form.description.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.description.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="id_category" class="form-label">Category</label>
+                        {% render_field form.category class="form-select" %}
+                        {% if form.category.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.category.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="id_level" class="form-label">Level</label>
+                        {% render_field form.level class="form-select" %}
+                        {% if form.level.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.level.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="id_price" class="form-label">Price ($)</label>
+                        {% render_field form.price class="form-control" placeholder="0.00" min="0" step="0.01" %}
+                        {% if form.price.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.price.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="id_thumbnail" class="form-label">Thumbnail</label>
+                        {% render_field form.thumbnail class="form-control" %}
+                        {% if form.thumbnail.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.thumbnail.errors }}
+                        </div>
+                        {% endif %}
+                        {% if form.instance.thumbnail %}
+                        <img src="{{ form.instance.thumbnail.url }}" alt="Thumbnail Preview" class="thumbnail-preview">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-submit">{{ button_text }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Preview thumbnail before upload
+    const thumbnailInput = document.getElementById('id_thumbnail');
+    const thumbnailPreview = document.querySelector('.thumbnail-preview');
+    
+    if (thumbnailInput && thumbnailPreview) {
+        thumbnailInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    thumbnailPreview.src = e.target.result;
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

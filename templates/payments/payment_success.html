@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Successful{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle text-success fa-4x mb-4"></i>
+                    <h2 class="card-title">Payment Successful!</h2>
+                    <p class="card-text">Thank you for your purchase. You have been successfully enrolled in the course.</p>
+                    <div class="mt-4">
+                        <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary">Go to Course</a>
+                        <a href="{% url 'course_list' %}" class="btn btn-outline-primary">Browse More Courses</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

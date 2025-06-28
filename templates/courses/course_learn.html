@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.title }} - Learning - Online Learning Platform{% endblock %}
+
+{% block content %}
+<div class="course-learning-container">
+    <!-- Sidebar -->
+    <div class="course-sidebar">
+        <div class="sidebar-header">
+            <h2 class="h5 mb-0">{{ course.title }}</h2>
+            <button class="btn-close" id="sidebarToggle"></button>
+        </div>
+        <div class="sidebar-content">
+            <div class="progress mb-3">
+                <div class="progress-bar" role="progressbar" style="width: {{ progress.percentage }}%">
+                    {{ progress.percentage }}% Complete
+                </div>
+            </div>
+            <div class="accordion" id="courseModules">
+                {% for module in course.modules.all %}
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#module{{ module.id }}">
+                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                <span>{{ module.title }}</span>
+                                <span class="badge bg-secondary">{{ module.lessons.count }} Lessons</span>
+                            </div>
+                        </button>
+                    </h3>
+                    <div id="module{{ module.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#courseModules">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                                {% for lesson in module.lessons.all %}
+                                <li class="list-group-item {% if lesson.id == current_lesson.id %}active{% endif %}">
+                                    <a href="{% url 'lesson_detail' course.slug lesson.id %}" class="d-flex justify-content-between align-items-center text-decoration-none">
+                                        <div>
+                                            <i class="fas {% if lesson.is_completed %}fa-check-circle text-success{% else %}fa-play-circle{% endif %} me-2"></i>
+                                            {{ lesson.title }}
+                                        </div>
+                                        <span class="text-muted">{{ lesson.duration }} min</span>
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="course-content">
+        <div class="content-header">
+            <button class="btn btn-link" id="sidebarToggleBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="d-flex align-items-center">
+                <div class="dropdown">
+                    <button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'course_discussions' course.slug %}">Discussions</a></li>
+                        <li><a class="dropdown-item" href="{% url 'course_resources' course.slug %}">Resources</a></li>
+                        <li><a class="dropdown-item" href="{% url 'course_certificate' course.slug %}">Certificate</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-body">
+            <!-- Lesson Content -->
+            <div class="lesson-content">
+                <h1 class="h3 mb-4">{{ current_lesson.title }}</h1>
+                
+                {% if current_lesson.video_url %}
+                <div class="video-container mb-4">
+                    <div class="ratio ratio-16x9">
+                        <iframe src="{{ current_lesson.video_url }}" allowfullscreen></iframe>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="lesson-text">
+                    {{ current_lesson.content|safe }}
+                </div>
+
+                {% if current_lesson.attachments.exists %}
+                <div class="lesson-attachments mt-4">
+                    <h3 class="h5 mb-3">Attachments</h3>
+                    <div class="list-group">
+                        {% for attachment in current_lesson.attachments.all %}
+                        <a href="{{ attachment.file.url }}" class="list-group-item list-group-item-action" target="_blank">
+                            <i class="fas fa-file me-2"></i>
+                            {{ attachment.title }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Navigation -->
+            <div class="lesson-navigation mt-4">
+                <div class="d-flex justify-content-between">
+                    {% if previous_lesson %}
+                    <a href="{% url 'lesson_detail' course.slug previous_lesson.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Previous Lesson
+                    </a>
+                    {% else %}
+                    <div></div>
+                    {% endif %}
+
+                    {% if next_lesson %}
+                    <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" class="btn btn-primary">
+                        Next Lesson
+                        <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                    {% else %}
+                    <button class="btn btn-success" id="completeCourse">
+                        Complete Course
+                        <i class="fas fa-check ms-2"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.course-learning-container {
+    display: flex;
+    height: calc(100vh - 56px);
+}
+
+.course-sidebar {
+    width: 300px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.course-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.content-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.content-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+.lesson-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.video-container {
+    background-color: #000;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.lesson-text {
+    line-height: 1.6;
+}
+
+.lesson-text img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+}
+
+.lesson-navigation {
+    max-width: 800px;
+    margin: 0 auto;
+    padding-top: 2rem;
+    border-top: 1px solid #dee2e6;
+}
+
+@media (max-width: 768px) {
+    .course-sidebar {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        bottom: 0;
+        z-index: 1000;
+        transform: translateX(-100%);
+    }
+
+    .course-sidebar.show {
+        transform: translateX(0);
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sidebar toggle functionality
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const courseSidebar = document.querySelector('.course-sidebar');
+
+    function toggleSidebar() {
+        courseSidebar.classList.toggle('show');
+    }
+
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    sidebarToggle.addEventListener('click', toggleSidebar);
+
+    // Complete course button click handler
+    const completeCourseBtn = document.getElementById('completeCourse');
+    if (completeCourseBtn) {
+        completeCourseBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to complete this course?')) {
+                fetch("{% url 'complete_course' course.slug %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = "{% url 'course_certificate' course.slug %}";
+                    } else {
+                        alert('Failed to complete the course. Please try again.');
+                    }
+                });
+            }
+        });
+    }
+
+    // Mark lesson as completed
+    fetch("{% url 'mark_lesson_completed' course.slug current_lesson.id %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+    });
+});
+</script>
+{% endblock %} 

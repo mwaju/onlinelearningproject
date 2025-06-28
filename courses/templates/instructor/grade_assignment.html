@@ -1,0 +1,241 @@
+{% extends 'instructor/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Grade Assignment - {{ assignment.title }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <a href="{% url 'instructor:assignment_detail' assignment.id %}" class="text-decoration-none">
+                        <i class="fas fa-arrow-left me-2"></i>
+                    </a>
+                    Grading: {{ assignment.title }}
+                </h5>
+                <div>
+                    <span class="badge bg-{{ submission.is_graded|yesno:'success,secondary' }}">
+                        {% if submission.is_graded %}Graded{% else %}Ungraded{% endif %}
+                    </span>
+                    {% if submission.is_late %}
+                        <span class="badge bg-warning text-dark">Submitted Late</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Student</h6>
+                        <p class="mb-0">
+                            <i class="fas fa-user-graduate me-2"></i>
+                            {{ submission.student.get_full_name|default:submission.student.username }}
+                        </p>
+                        <p class="text-muted small mb-0">{{ submission.student.email }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Submission Details</h6>
+                        <p class="mb-0">
+                            <i class="far fa-clock me-2"></i>
+                            Submitted {{ submission.submitted_at|timesince }} ago
+                            <small class="text-muted">({{ submission.submitted_at|date:"M j, Y \a\t g:i A" }})</small>
+                        </p>
+                        {% if submission.is_late %}
+                            <p class="text-danger mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                {{ submission.late_minutes }} minutes late
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if submission.notes %}
+                <div class="alert alert-light mb-4">
+                    <h6>Student Notes</h6>
+                    {{ submission.notes|linebreaks }}
+                </div>
+                {% endif %}
+
+                {% if submission.attachments.exists %}
+                <div class="mb-4">
+                    <h6>Attachments</h6>
+                    <div class="list-group">
+                        {% for attachment in submission.attachments.all %}
+                        <a href="{{ attachment.file.url }}" class="list-group-item list-group-item-action" target="_blank">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-file-{{ attachment.extension_icon }} me-2"></i>
+                                    {{ attachment.filename }}
+                                </div>
+                                <span class="badge bg-light text-dark">{{ attachment.file.size|filesizeformat }}</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="score" class="form-label">
+                                    Score (out of {{ assignment.total_points }} points)
+                                </label>
+                                <input type="number" 
+                                       class="form-control form-control-lg{% if form.score.errors %} is-invalid{% endif %}" 
+                                       id="score" 
+                                       name="score" 
+                                       min="0" 
+                                       max="{{ assignment.total_points }}" 
+                                       step="0.1"
+                                       value="{{ form.score.value|default:'' }}"
+                                       required>
+                                {% if form.score.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.score.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Percentage</label>
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control form-control-lg text-end" 
+                                           id="percentage" 
+                                           value="0%" 
+                                           disabled>
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="feedback" class="form-label">Feedback</label>
+                        <textarea class="form-control{% if form.feedback.errors %} is-invalid{% endif %}" 
+                                  id="feedback" 
+                                  name="feedback" 
+                                  rows="5"
+                                  placeholder="Provide feedback to the student...">{{ form.feedback.value|default:'' }}</textarea>
+                        {% if form.feedback.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.feedback.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            You can use markdown formatting in your feedback.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if submission.graded_at %}
+                                <small class="text-muted">
+                                    Last graded on {{ submission.graded_at|date:"M j, Y \a\t g:i A" }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <a href="{% url 'instructor:assignment_detail' assignment.id %}" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Save Grade
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Previous Submissions -->
+        {% if previous_submissions.exists %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Previous Submissions</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for prev_submission in previous_submissions %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                Submission #{{ forloop.revcounter }}
+                                {% if prev_submission.is_graded %}
+                                    <span class="badge bg-success ms-2">
+                                        {{ prev_submission.score }} / {{ assignment.total_points }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary ms-2">Not Graded</span>
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">
+                                {{ prev_submission.submitted_at|timesince }} ago
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                Submitted on {{ prev_submission.submitted_at|date:"M j, Y \a\t g:i A" }}
+                                {% if prev_submission.graded_at %}
+                                    • Graded on {{ prev_submission.graded_at|date:"M j, Y" }}
+                                {% endif %}
+                            </small>
+                            <a href="{% url 'instructor:grade_assignment' assignment.id prev_submission.id %}" 
+                               class="btn btn-sm btn-outline-primary">
+                                View
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate percentage based on score
+    const scoreInput = document.getElementById('score');
+    const percentageInput = document.getElementById('percentage');
+    const totalPoints = {{ assignment.total_points }};
+    
+    function updatePercentage() {
+        const score = parseFloat(scoreInput.value) || 0;
+        const percentage = (score / totalPoints * 100).toFixed(1);
+        percentageInput.value = isNaN(percentage) ? '0' : percentage;
+    }
+    
+    scoreInput.addEventListener('input', updatePercentage);
+    
+    // Initialize percentage on page load
+    updatePercentage();
+    
+    // Enable tab key for textareas
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                
+                // Set textarea value to: text before caret + tab + text after caret
+                this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+                
+                // Put caret at right position again
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

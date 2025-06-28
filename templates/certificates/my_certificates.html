@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}My Certificates - Online Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">My Certificates</h1>
+            
+            {% if certificates %}
+                <div class="row">
+                    {% for certificate in certificates %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ certificate.course.title }}</h5>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            Issued on: {{ certificate.issued_at|date:"F j, Y" }}
+                                        </small>
+                                    </p>
+                                    <p class="card-text">
+                                        Certificate ID: {{ certificate.certificate_number|slice:":8" }}...
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-white">
+                                    <a href="{% url 'certificates:certificates-detail' pk=certificate.id %}download/" 
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-download me-1"></i> Download
+                                    </a>
+                                    <a href="{% url 'courses:course_detail' id=certificate.course.id %}" 
+                                       class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-book me-1"></i> View Course
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You haven't earned any certificates yet. Complete a course to earn your first certificate!
+                </div>
+                <a href="{% url 'courses:course_list' %}" class="btn btn-primary">
+                    <i class="fas fa-book-open me-2"></i> Browse Courses
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load course_tags %}
+
+{% block title %}Instructor Dashboard - Online Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style type="text/css">
+.dashboard-header {
+    background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.course-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+}
+
+.course-image {
+    height: 200px;
+    object-fit: cover;
+}
+
+.section-title {
+    position: relative;
+    margin-bottom: 2rem;
+    padding-bottom: 0.5rem;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background: var(--primary-color);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.75rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<section class="dashboard-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 fw-bold mb-3">Welcome back, {{ user.get_full_name }}!</h1>
+                <p class="lead mb-0">Manage your courses and track your success.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{% url 'courses:course_create' %}" class="btn btn-light btn-lg">
+                    <i class="fas fa-plus me-2"></i>Create New Course
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number">{{ total_courses }}</div>
+                    <p class="mb-0">Total Courses</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number">{{ total_students }}</div>
+                    <p class="mb-0">Total Students</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number">${{ total_revenue|floatformat:2 }}</div>
+                    <p class="mb-0">Total Revenue</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Courses Section -->
+<section class="py-4">
+    <div class="container">
+        <h2 class="section-title">Your Courses</h2>
+        <div class="row">
+            {% for course in courses %}
+            <div class="col-md-6 col-lg-4">
+                <div class="course-card">
+                    <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="course-image">
+                    <div class="p-3">
+                        <h3 class="h5 mb-2">{{ course.title }}</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value">{{ course_stats|get_item:course.id|get_item:'students_count' }}</div>
+                                <div class="stat-label">Students</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${{ course_stats|get_item:course.id|get_item:'revenue'|floatformat:2 }}</div>
+                                <div class="stat-label">Revenue</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ course_stats|get_item:course.id|get_item:'avg_rating'|floatformat:1 }}</div>
+                                <div class="stat-label">Rating</div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <a href="{% url 'courses:course_detail' course.slug %}" class="btn btn-outline-primary">
+                                View Course
+                            </a>
+                            <a href="{% url 'courses:course_edit' course.slug %}" class="btn btn-primary">
+                                Edit Course
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You haven't created any courses yet. 
+                    <a href="{% url 'courses:course_create' %}" class="alert-link">Create your first course</a> to get started.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add animation classes to elements
+    const elements = document.querySelectorAll('.stats-card, .course-card');
+    elements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+        element.classList.add('animate-on-scroll');
+    });
+});
+</script>
+{% endblock %} 

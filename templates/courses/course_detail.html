@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }} - Online Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Course Header -->
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <h1 class="display-4 mb-3">{{ course.title }}</h1>
+            <div class="d-flex align-items-center mb-3">
+                <span class="badge bg-primary me-2">{{ course.get_level_display }}</span>
+                <span class="text-muted me-3">
+                    <i class="fas fa-clock"></i> {{ course.duration }}
+                </span>
+                <span class="text-muted me-3">
+                    <i class="fas fa-users"></i> {{ course.enrollments.count }} students
+                </span>
+                <span class="text-muted">
+                    <i class="fas fa-star text-warning"></i> 4.5
+                </span>
+            </div>
+            <p class="lead">{{ course.description }}</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <img src="{{ thumbnail_url|default:'/static/images/default-course.jpg' }}" class="card-img-top" alt="{{ course.title }}">
+                <div class="card-body">
+                    <h3 class="card-title h4 mb-3">${{ course.price }}</h3>
+                    {% if user.is_authenticated %}
+                        {% if enrollment %}
+                            {% if not enrollment.completed %}
+                                <a href="{% url 'courses:course_learn' course.slug %}" class="btn btn-primary btn-lg w-100 mb-2">
+                                    Continue Learning
+                                </a>
+                            {% else %}
+                                <a href="{% url 'courses:course_learn' course.slug %}" class="btn btn-success btn-lg w-100 mb-2">
+                                    View Course
+                                </a>
+                                <div class="text-center mt-2">
+                                    <small class="text-muted">You've completed this course</small>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <form method="post" action="{% url 'courses:enroll_course' course.slug %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-lg w-100 mb-2">
+                                    Enroll Now
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'users:login' %}?next={{ request.path }}" class="btn btn-primary btn-lg w-100 mb-2">
+                            Login to Enroll
+                        </a>
+                    {% endif %}
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-secondary">
+                            <i class="fas fa-share-alt"></i> Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Content -->
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- What You'll Learn -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h4 mb-4">What You'll Learn</h2>
+                    <div class="row">
+                        {% if learning_objectives %}
+                            {% for objective in learning_objectives %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-check-circle text-success me-2 mt-1"></i>
+                                        <span>{{ objective }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12">
+                                <p class="text-muted">No learning objectives available for this course.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Course Content -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h4 mb-4">Course Content</h2>
+                    <div class="accordion" id="courseContent">
+                        {% if modules %}
+                            {% for module in modules %}
+                                <div class="accordion-item">
+                                    <h3 class="accordion-header" id="heading{{ module.id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                data-bs-target="#collapse{{ module.id }}" aria-expanded="false" 
+                                                aria-controls="collapse{{ module.id }}">
+                                            <div class="d-flex justify-content-between w-100 me-3">
+                                                <span>{{ module.title }}</span>
+                                                <span class="text-muted">{{ module.lessons|length }} lessons</span>
+                                            </div>
+                                        </button>
+                                    </h3>
+                                    <div id="collapse{{ module.id }}" class="accordion-collapse collapse" 
+                                         aria-labelledby="heading{{ module.id }}" data-bs-parent="#courseContent">
+                                        <div class="accordion-body">
+                                            <ul class="list-group list-group-flush">
+                                                {% for lesson in module.lessons %}
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <i class="fas fa-play-circle text-primary me-2"></i>
+                                                            {{ lesson.title }}
+                                                        </div>
+                                                        <span class="text-muted">{{ lesson.duration|default:'' }}</span>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                No course content available yet.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructor -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h4 mb-4">Instructor</h2>
+                    <div class="d-flex align-items-center">
+                        <img src="https://ui-avatars.com/api/?name={{ instructor_data.username }}&background=0D8ABC&color=fff&size=80" 
+                             class="rounded-circle me-3" width="80" height="80" alt="{{ instructor_data.username }}">
+                        <div>
+                            <h3 class="h5 mb-1">{{ instructor_data.username }}</h3>
+                            <p class="text-muted mb-2">{{ instructor_data.bio|default:"No bio available" }}</p>
+                            <div class="d-flex gap-2">
+                                <a href="#" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-user"></i> View Profile
+                                </a>
+                                <a href="#" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-envelope"></i> Contact
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Course Features -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3 class="h5 mb-3">This Course Includes</h3>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-video text-primary me-2"></i>
+                            {{ course.lessons.count }} lessons
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            {{ course.duration }} total duration
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-download text-primary me-2"></i>
+                            Downloadable resources
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-infinity text-primary me-2"></i>
+                            Full lifetime access
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-mobile-alt text-primary me-2"></i>
+                            Access on mobile and TV
+                        </li>
+                        <li>
+                            <i class="fas fa-certificate text-primary me-2"></i>
+                            Certificate of completion
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3 class="h5 mb-3">Categories</h3>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="#" class="badge bg-light text-dark text-decoration-none">
+                            {{ course.category.name }}
+                        </a>
+                        <a href="#" class="badge bg-light text-dark text-decoration-none">
+                            {{ course.get_level_display }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa;
+        color: #0d6efd;
+    }
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0,0,0,.125);
+    }
+</style>
+{% endblock %} 

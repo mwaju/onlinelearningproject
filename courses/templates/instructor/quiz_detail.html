@@ -1,0 +1,427 @@
+{% extends 'instructor/base.html' %}
+{% load humanize %}
+
+{% block page_title %}{{ quiz.title }}{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        {% if quiz.is_published %}
+            <a href="#" class="btn btn-success">
+                <i class="fas fa-check-circle me-1"></i> Published
+            </a>
+        {% else %}
+            <a href="{% url 'instructor:publish_quiz' quiz.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-upload me-1"></i> Publish
+            </a>
+        {% endif %}
+        <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="visually-hidden">Toggle Dropdown</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Edit Quiz</a></li>
+            <li><a class="dropdown-item" href="{% url 'instructor:duplicate_quiz' quiz.id %}"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteQuizModal"><i class="fas fa-trash-alt me-2"></i>Delete</a></li>
+        </ul>
+    </div>
+    
+    <!-- Delete Quiz Modal -->
+    <div class="modal fade" id="deleteQuizModal" tabindex="-1" aria-labelledby="deleteQuizModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteQuizModalLabel">Delete Quiz</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the quiz <strong>{{ quiz.title }}</strong>?</p>
+                    <p class="text-danger">This action cannot be undone. All submissions and grades will be permanently deleted.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="post" action="{% url 'instructor:delete_quiz' quiz.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Delete Quiz</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="row">
+    <!-- Quiz Info -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Quiz Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Course</dt>
+                    <dd>
+                        {% if quiz.course %}
+                            <a href="{% url 'courses:course_detail' slug=quiz.course.slug %}">
+                                {{ quiz.course.title }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted">No course assigned</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="mt-3">Time Limit</dt>
+                    <dd>{{ quiz.time_limit }} minutes</dd>
+                    
+                    <dt class="mt-3">Passing Score</dt>
+                    <dd>{{ quiz.passing_score }}%</dd>
+                    
+                    <dt class="mt-3">Availability</dt>
+                    <dd>
+                        {% if quiz.is_available %}
+                            <span class="text-success">
+                                <i class="fas fa-check-circle me-1"></i> Active
+                            </span>
+                            <small class="d-block text-muted">
+                                Ends {{ quiz.available_until|date:"F j, Y \a\t g:i A" }}
+                            </small>
+                        {% elif quiz.available_until < now %}
+                            <span class="text-muted">
+                                <i class="far fa-calendar-times me-1"></i> Ended
+                            </span>
+                            <small class="d-block">
+                                {{ quiz.available_until|date:"F j, Y \a\t g:i A" }}
+                            </small>
+                        {% else %}
+                            <span class="text-info">
+                                <i class="far fa-clock me-1"></i> Upcoming
+                            </span>
+                            <small class="d-block">
+                                Starts {{ quiz.available_from|date:"F j, Y \a\t g:i A" }}
+                            </small>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="mt-3">Questions</dt>
+                    <dd>
+                        {{ quiz.questions.count }} question{{ quiz.questions.count|pluralize }}
+                        <span class="text-muted">({{ quiz.total_points }} points)</span>
+                    </dd>
+                    
+                    <dt class="mt-3">Submissions</dt>
+                    <dd>
+                        <div class="d-flex align-items-center">
+                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                {% with total=quiz.submissions.count graded=quiz.submissions.graded.count %}
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {% if total > 0 %}{{ graded|div:total|mul:100 }}{% else %}0{% endif %}%" 
+                                     aria-valuenow="{{ graded }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+                                </div>
+                                {% endwith %}
+                            </div>
+                            <span class="small">
+                                {{ quiz.submissions.graded.count }}/{{ quiz.submissions.count }}
+                            </span>
+                        </div>
+                    </dd>
+                    
+                    <dt class="mt-3">Average Score</dt>
+                    <dd>
+                        {% if quiz.average_score is not None %}
+                            {{ quiz.average_score|floatformat:1 }}%
+                            <small class="text-muted">
+                                ({{ quiz.submissions.graded.count }} of {{ quiz.submissions.count }} graded)
+                            </small>
+                        {% else %}
+                            <span class="text-muted">No submissions yet</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+                
+                <div class="d-grid gap-2 mt-4">
+                    <a href="#submissions" class="btn btn-primary">
+                        <i class="fas fa-list-check me-1"></i> Grade Submissions
+                    </a>
+                    <a href="#" class="btn btn-outline-secondary">
+                        <i class="fas fa-chart-bar me-1"></i> View Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Description</h5>
+            </div>
+            <div class="card-body">
+                {% if quiz.description %}
+                    {{ quiz.description|linebreaks }}
+                {% else %}
+                    <p class="text-muted">No description provided.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quiz Settings</h5>
+            </div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Shuffle Questions</dt>
+                    <dd>{% if quiz.shuffle_questions %}Yes{% else %}No{% endif %}</dd>
+                    
+                    <dt class="mt-3">Shuffle Answers</dt>
+                    <dd>{% if quiz.shuffle_answers %}Yes{% else %}No{% endif %}</dd>
+                    
+                    <dt class="mt-3">Show Correct Answers</dt>
+                    <dd>{% if quiz.show_correct_answers %}Yes{% else %}No{% endif %}</dd>
+                    
+                    <dt class="mt-3">Time Limit</dt>
+                    <dd>{{ quiz.time_limit }} minutes</dd>
+                    
+                    <dt class="mt-3">Attempts Allowed</dt>
+                    <dd>{% if quiz.attempts == 0 %}Unlimited{% else %}{{ quiz.attempts }}{% endif %}</dd>
+                </dl>
+                
+                <div class="d-grid gap-2 mt-4">
+                    <a href="#" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog me-1"></i> Edit Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Questions & Submissions -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Questions</h5>
+                <a href="{% url 'instructor:add_question' quiz.id %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus me-1"></i> Add Question
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if quiz.questions.exists %}
+                    <div class="list-group list-group-flush">
+                        {% for question in quiz.questions.all %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1 me-3">
+                                    <h6 class="mb-1">
+                                        {{ forloop.counter }}. {{ question.text|truncatewords:10 }}
+                                        <span class="badge bg-primary ms-2">{{ question.points }} pts</span>
+                                    </h6>
+                                    <small class="text-muted">
+                                        {{ question.get_question_format_display }}
+                                        {% if question.choices.exists %}
+                                            • {{ question.choices.count }} options
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'instructor:edit_question' quiz.id question.id %}" 
+                                       class="btn btn-sm btn-outline-secondary"
+                                       data-bs-toggle="tooltip" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'instructor:delete_question' quiz.id question.id %}" 
+                                       class="btn btn-sm btn-outline-danger"
+                                       data-bs-toggle="tooltip" title="Delete"
+                                       onclick="return confirm('Are you sure you want to delete this question? This action cannot be undone.');">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center p-5">
+                        <div class="mb-3">
+                            <i class="fas fa-question-circle fa-4x text-muted"></i>
+                        </div>
+                        <h5>No questions yet</h5>
+                        <p class="text-muted">Add questions to your quiz to get started.</p>
+                        <a href="{% url 'instructor:add_question' quiz.id %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i> Add Question
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card" id="submissions">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Submissions</h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-download me-1"></i> Export
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#">CSV</a></li>
+                        <li><a class="dropdown-item" href="#">Excel</a></li>
+                        <li><a class="dropdown-item" href="#">PDF</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                {% if quiz.submissions.exists %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Status</th>
+                                    <th>Score</th>
+                                    <th>Time Spent</th>
+                                    <th>Submitted</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for submission in quiz.submissions.all|dictsortreversed:"submitted_at" %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'instructor:student_submission_detail' submission.id %}" class="fw-bold">
+                                            {{ submission.student.get_full_name|default:submission.student.username }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if submission.is_completed %}
+                                            {% if submission.is_graded %}
+                                                <span class="badge bg-success">Graded</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">Submitted</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">In Progress</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if submission.is_graded %}
+                                            {{ submission.score|floatformat:1 }} / {{ quiz.total_points }}
+                                            <div class="progress mt-1" style="height: 4px;">
+                                                <div class="progress-bar bg-{% if submission.percentage >= quiz.passing_score %}success{% else %}danger{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ submission.percentage }}%" 
+                                                     aria-valuenow="{{ submission.percentage }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if submission.time_spent %}
+                                            {{ submission.time_spent|floatformat:0 }} min
+                                        {% else %}
+                                            <span class="text-muted">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if submission.submitted_at %}
+                                            {{ submission.submitted_at|timesince }} ago
+                                        {% else %}
+                                            <span class="text-muted">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'instructor:student_submission_detail' submission.id %}" 
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-bs-toggle="tooltip" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if not submission.is_graded and submission.is_completed %}
+                                        <a href="{% url 'instructor:grade_quiz_question' quiz.id 'all' %}?submission={{ submission.id }}" 
+                                           class="btn btn-sm btn-outline-success"
+                                           data-bs-toggle="tooltip" title="Grade">
+                                            <i class="fas fa-check-double"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center p-5">
+                        <div class="mb-3">
+                            <i class="fas fa-inbox fa-4x text-muted"></i>
+                        </div>
+                        <h5>No submissions yet</h5>
+                        <p class="text-muted">
+                            {% if quiz.is_available %}
+                                Students can submit their answers once the quiz is active.
+                            {% else %}
+                                The quiz is not currently available for submissions.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Question Preview Modal -->
+<div class="modal fade" id="questionPreviewModal" tabindex="-1" aria-labelledby="questionPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="questionPreviewModalLabel">Question Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="questionPreviewContent">
+                <!-- Content will be loaded via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    // Enable tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Preview question in modal
+        var previewButtons = document.querySelectorAll('.preview-question');
+        previewButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                var questionId = this.dataset.questionId;
+                var modal = new bootstrap.Modal(document.getElementById('questionPreviewModal'));
+                
+                // Load question content via AJAX
+                fetch(`/api/questions/${questionId}/preview/`)
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('questionPreviewContent').innerHTML = html;
+                        modal.show();
+                    })
+                    .catch(error => {
+                        console.error('Error loading question preview:', error);
+                        document.getElementById('questionPreviewContent').innerHTML = 
+                            '<div class="alert alert-danger">Error loading question preview.</div>';
+                        modal.show();
+                    });
+            });
+        });
+    });
+</script>
+{% endblock %}

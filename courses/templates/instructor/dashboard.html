@@ -1,0 +1,254 @@
+{% extends 'instructor/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="row">
+    <!-- Grading Stats -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Grading Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-1">Assignments to Grade</h6>
+                                        <h3 class="mb-0">{{ grading_stats.assignments_to_grade }}</h3>
+                                    </div>
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-tasks text-primary"></i>
+                                    </div>
+                                </div>
+                                <a href="{% url 'instructor:assignment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-1">Quiz Questions to Grade</h6>
+                                        <h3 class="mb-0">{{ grading_stats.quizzes_to_grade }}</h3>
+                                    </div>
+                                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-question-circle text-warning"></i>
+                                    </div>
+                                </div>
+                                <a href="{% url 'instructor:grade_ungraded_questions' quiz_id=0 %}" class="btn btn-sm btn-outline-warning mt-2">Grade Now</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-1">Avg. Assignment Grade</h6>
+                                        <h3 class="mb-0">{{ grading_stats.average_grades.assignments|floatformat:1 }}%</h3>
+                                    </div>
+                                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-chart-line text-success"></i>
+                                    </div>
+                                </div>
+                                <a href="{% url 'instructor:assignment_list' %}" class="btn btn-sm btn-outline-success mt-2">View Reports</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-1">Avg. Quiz Score</h6>
+                                        <h3 class="mb-0">{{ grading_stats.average_grades.quizzes|floatformat:1 }}%</h3>
+                                    </div>
+                                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-chart-pie text-info"></i>
+                                    </div>
+                                </div>
+                                <a href="{% url 'instructor:quiz_list' %}" class="btn btn-sm btn-outline-info mt-2">View Reports</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Assignments -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Assignments</h5>
+                <a href="{% url 'instructor:assignment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_assignments %}
+                    <div class="list-group list-group-flush">
+                        {% for assignment in recent_assignments %}
+                        <a href="{% url 'instructor:assignment_detail' assignment.id %}" 
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ assignment.title }}</h6>
+                                <small class="text-muted">{{ assignment.created_at|timesince }} ago</small>
+                            </div>
+                            <p class="mb-1 text-muted small">{{ assignment.course.title }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    {% if assignment.is_past_due %}
+                                        <span class="badge bg-danger">Past Due</span>
+                                    {% else %}
+                                        Due {{ assignment.due_date|timeuntil }}
+                                    {% endif %}
+                                </small>
+                                <span class="badge bg-primary">
+                                    {{ assignment.submissions.count }} submission{{ assignment.submissions.count|pluralize }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center p-4">
+                        <p class="text-muted">No assignments found.</p>
+                        <a href="{% url 'instructor:create_assignment' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Create Assignment
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Quizzes -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Quizzes</h5>
+                <a href="{% url 'instructor:quiz_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_quizzes %}
+                    <div class="list-group list-group-flush">
+                        {% for quiz in recent_quizzes %}
+                        <a href="{% url 'instructor:quiz_detail' quiz.id %}" 
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    {{ quiz.title }}
+                                    {% if not quiz.is_published %}
+                                        <span class="badge bg-warning text-dark">Draft</span>
+                                    {% endif %}
+                                </h6>
+                                <small class="text-muted">{{ quiz.created_at|timesince }} ago</small>
+                            </div>
+                            <p class="mb-1 text-muted small">{{ quiz.course.title }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    {% if quiz.is_available %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% elif quiz.available_until < now %}
+                                        <span class="badge bg-secondary">Ended</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Upcoming</span>
+                                    {% endif %}
+                                </small>
+                                <span class="badge bg-primary">
+                                    {{ quiz.submissions.count }} attempt{{ quiz.submissions.count|pluralize }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center p-4">
+                        <p class="text-muted">No quizzes found.</p>
+                        <a href="{% url 'instructor:create_quiz' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Create Quiz
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="{% url 'instructor:create_assignment' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i> New Assignment
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'instructor:bulk_grade_quizzes' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i> New Quiz
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="#" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#announcementModal">
+                            <i class="fas fa-bullhorn me-2"></i> Post Announcement
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'courses:course_create' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-plus-circle me-2"></i> New Course
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Announcement Modal -->
+<div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="announcementModalLabel">New Announcement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="#">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="announcementCourse" class="form-label">Course</label>
+                        <select class="form-select" id="announcementCourse" required>
+                            <option value="" selected disabled>Select a course</option>
+                            {% for course in request.user.instructor_courses.all %}
+                                <option value="{{ course.id }}">{{ course.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="announcementTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="announcementTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="announcementContent" class="form-label">Content</label>
+                        <textarea class="form-control" id="announcementContent" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Post Announcement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

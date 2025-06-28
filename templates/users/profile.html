@@ -1,0 +1,704 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile - Online Learning Platform{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<style>
+.profile-header {
+    background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-picture-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 1rem;
+}
+
+.profile-picture {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 5px solid white;
+    object-fit: cover;
+    transition: all 0.3s ease;
+}
+
+.profile-picture-upload {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: #6B73FF;
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid white;
+}
+
+.profile-picture-upload:hover {
+    background: #4a50c9;
+    transform: scale(1.1);
+}
+
+.stats-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}
+
+.stats-card h3 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 0.75rem;
+}
+
+.stat-item {
+    margin-bottom: 1.5rem;
+}
+
+.stat-item h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #6B73FF;
+    margin-bottom: 0.25rem;
+}
+
+.stat-item p {
+    color: #666;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control {
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #ddd;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #6B73FF;
+    box-shadow: 0 0 0 0.2rem rgba(107, 115, 255, 0.25);
+}
+
+.btn-primary {
+    background: #6B73FF;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: #4a50c9;
+    transform: translateY(-1px);
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1100;
+    max-width: 350px;
+}
+
+.toast {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: none;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Toast Notifications -->
+<div class="toast-container">
+    {% for message in messages %}
+    <div class="toast align-items-center text-white bg-{{ message.tags }} border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="profile-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center">
+                <form id="profilePictureForm" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="profile-picture-container">
+                        {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" 
+                             alt="Profile Picture" 
+                             class="profile-picture" 
+                             id="profilePicturePreview" />
+                        {% else %}
+                        <img src="{% static 'images/default-profile.png' %}" 
+                             alt="Default Profile Picture" 
+                             class="profile-picture" 
+                             id="profilePicturePreview" />
+                        {% endif %}
+                        <label for="id_profile_picture" class="profile-picture-upload" title="Change profile picture">
+                            <i class="fas fa-camera"></i>
+                        </label>
+                        <input type="file" 
+                               name="profile_picture" 
+                               id="id_profile_picture" 
+                               accept="image/*" 
+                               style="display: none;"
+                               onchange="document.getElementById('profilePictureForm').submit();">
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-9 text-center text-md-start">
+                <h1 class="mb-2">{{ user.get_full_name|default:user.username }}</h1>
+                <p class="lead mb-2">{{ user.email }}</p>
+                <div class="d-flex justify-content-center justify-content-md-start align-items-center gap-3">
+                    {% if user.is_instructor %}
+                    <span class="badge bg-primary px-3 py-2">
+                        <i class="fas fa-chalkboard-teacher me-1"></i> Instructor
+                    </span>
+                    {% else %}
+                    <span class="badge bg-success px-3 py-2">
+                        <i class="fas fa-user-graduate me-1"></i> Student
+                    </span>
+                    {% endif %}
+                    <span class="text-white-50">
+                        <i class="far fa-calendar-alt me-1"></i> Member since {{ join_date }}
+                    </span>
+                </div>
+                <p class="text-white-50 mt-2 mb-0">
+                    <i class="far fa-clock me-1"></i> Last login: {{ last_login }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row g-4">
+        <!-- Left Column -->
+        <div class="col-lg-4">
+            <!-- Profile Information Card -->
+            <div class="stats-card">
+                <h3><i class="fas fa-user-circle me-2"></i>Profile Information</h3>
+                <form id="profileForm" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if profile_form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in profile_form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="form-group">
+                        <label for="{{ profile_form.first_name.id_for_label }}">First Name</label>
+                        {{ profile_form.first_name }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ profile_form.last_name.id_for_label }}">Last Name</label>
+                        {{ profile_form.last_name }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ profile_form.email.id_for_label }}">Email Address</label>
+                        {{ profile_form.email }}
+                        <small class="form-text text-muted">We'll never share your email with anyone else.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ profile_form.bio.id_for_label }}">Bio</label>
+                        {{ profile_form.bio }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ profile_form.phone_number.id_for_label }}">Phone Number</label>
+                        {{ profile_form.phone_number }}
+                    </div>
+                    
+                    <button type="submit" name="update_profile" class="btn btn-primary w-100 mt-3">
+                        <i class="fas fa-save me-2"></i>Update Profile
+                    </button>
+                </form>
+            </div>
+
+            <!-- Change Password Card -->
+            <div class="stats-card">
+                <h3><i class="fas fa-key me-2"></i>Change Password</h3>
+                <form method="post" id="passwordForm">
+                    {% csrf_token %}
+                    {% if password_form %}
+                        {% if password_form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in password_form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="form-group">
+                            <label for="{{ password_form.old_password.id_for_label }}">Current Password</label>
+                            {{ password_form.old_password }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ password_form.new_password1.id_for_label }}">New Password</label>
+                            {{ password_form.new_password1 }}
+                            <div class="password-requirements text-muted small mt-1">
+                                {{ password_form.new_password1.help_text }}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ password_form.new_password2.id_for_label }}">Confirm New Password</label>
+                            {{ password_form.new_password2 }}
+                        </div>
+                        
+                        <button type="submit" name="change_password" class="btn btn-primary w-100 mt-2">
+                            <i class="fas fa-key me-2"></i>Change Password
+                        </button>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Password changes are handled by your social account provider.
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-8">
+            {% if user.is_instructor %}
+            <!-- Instructor Dashboard -->
+            <div class="stats-card">
+                <h3><i class="fas fa-chart-line me-2"></i>Instructor Dashboard</h3>
+                <div class="row text-center">
+                    <div class="col-md-4 stat-item">
+                        <div class="p-3">
+                            <h4>{{ stats.total_courses|default:0 }}</h4>
+                            <p>Total Courses</p>
+                            <a href="{% url 'courses:instructor_dashboard' %}" class="btn btn-sm btn-outline-primary mt-2">View All</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 stat-item">
+                        <div class="p-3">
+                            <h4>{{ stats.total_students|default:0 }}</h4>
+                            <p>Total Students</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 stat-item">
+                        <div class="p-3">
+                            <h4>${{ stats.total_revenue|default:0|floatformat:2 }}</h4>
+                            <p>Total Earnings</p>
+                            <a href="#" class="btn btn-sm btn-outline-secondary mt-2" data-bs-toggle="tooltip" title="Earnings dashboard coming soon" style="pointer-events: none; opacity: 0.7;">View Details</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h4 class="mb-3">Quick Actions</h4>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'courses:course_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create New Course
+                        </a>
+                        <a href="{% url 'courses:instructor_dashboard' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-tachometer-alt me-2"></i>Instructor Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Student Dashboard -->
+            <div class="stats-card">
+                <h3><i class="fas fa-graduation-cap me-2"></i>Learning Dashboard</h3>
+                <div class="row text-center">
+                    <div class="col-md-4 stat-item">
+                        <div class="p-3">
+                            <h4>{{ stats.enrolled_courses|default:0 }}</h4>
+                            <p>Enrolled Courses</p>
+                            <a href="{% url 'courses:my_courses' %}" class="btn btn-sm btn-outline-primary mt-2">View All</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 stat-item">
+                        <div class="p-3">
+                            <h4>{{ stats.completed_courses|default:0 }}</h4>
+                            <p>Completed Courses</p>
+                            <a href="{% url 'certificates:my_certificates' %}" class="btn btn-sm btn-outline-primary mt-2">View Certificates</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 stat-item">
+                        <div class="p-3">
+                            <h4>{{ stats.certificates|default:0 }}</h4>
+                            <p>Certificates</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h4 class="mb-3">Continue Learning</h4>
+                    {% if stats.recent_courses %}
+                        <div class="list-group">
+                            {% for course in stats.recent_courses %}
+                            <a href="{% url 'courses:course_learn' slug=course.slug %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ course.title }}</h6>
+                                    <small>{{ course.progress }}% Complete</small>
+                                </div>
+                                <div class="progress mt-2" style="height: 5px">
+                                    <div class="progress-bar bg-primary" role="progressbar" 
+                                         style="width: {{ course.progress }}%" 
+                                         aria-valuenow="{{ course.progress }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            You haven't enrolled in any courses yet. 
+                            <a href="{% url 'courses:course_list' %}" class="alert-link">Browse courses</a> to get started.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Additional Information Card -->
+            <div class="stats-card">
+                <h3><i class="fas fa-info-circle me-2"></i>Account Information</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Account Status</h6>
+                            <p class="mb-0">
+                                {% if user.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Inactive</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Email Verified</h6>
+                            <p class="mb-0">
+                                {% if user.email_verified %}
+                                    <span class="badge bg-success">Verified</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Not Verified</span>
+                                    <a href="#" class="ms-2 text-primary">Resend Verification</a>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Member Since</h6>
+                            <p class="mb-0">{{ join_date }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Last Login</h6>
+                            <p class="mb-0">{{ last_login }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% if not user.is_instructor %}
+                <div class="mt-3 pt-3 border-top">
+                    <h6 class="text-muted mb-2">Become an Instructor</h6>
+                    <p>Share your knowledge and earn money by teaching what you love.</p>
+                    <a href="{% url 'users:become_instructor' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>Apply to Teach
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/auth.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap Toasts
+    const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+    const toastList = toastElList.map(function(toastEl) {
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 5000
+        });
+        toast.show();
+        return toast;
+    });
+
+    // Profile picture preview
+    const profilePictureInput = document.getElementById('id_profile_picture');
+    const profilePicturePreview = document.getElementById('profilePicturePreview');
+    
+    if (profilePictureInput && profilePicturePreview) {
+        profilePictureInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profilePicturePreview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                
+                // Auto-submit the form when a new image is selected
+                const form = document.getElementById('profilePictureForm');
+                if (form) {
+                    form.submit();
+                }
+            }
+        });
+    }
+
+    // Profile form submission with AJAX
+    const profileForm = document.getElementById('profileForm');
+    const passwordForm = document.getElementById('passwordForm');
+    
+    if (profileForm) {
+        profileForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(profileForm);
+            const submitButton = profileForm.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            
+            try {
+                // Show loading state
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...';
+                
+                const response = await fetch(profileForm.action || window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Show success toast
+                    showToast('Profile updated successfully!', 'success');
+                    
+                    // Update any dynamic content if needed
+                    if (result.user) {
+                        document.querySelector('.profile-header h1').textContent = 
+                            result.user.full_name || result.user.username;
+                    }
+                    
+                    // Reload the page after a short delay to reflect changes
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    // Show error toast
+                    showToast('Error updating profile. Please check the form for errors.', 'danger');
+                    
+                    // Handle validation errors
+                    clearFormErrors(profileForm);
+                    Object.keys(result.errors || {}).forEach(field => {
+                        const input = profileForm.querySelector(`[name="${field}"]`);
+                        if (input) {
+                            input.classList.add('is-invalid');
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'invalid-feedback';
+                            errorDiv.textContent = Array.isArray(result.errors[field]) 
+                                ? result.errors[field][0] 
+                                : result.errors[field];
+                            input.parentNode.insertBefore(errorDiv, input.nextSibling);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('An error occurred. Please try again.', 'danger');
+            } finally {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        });
+    }
+    
+    // Password form submission with AJAX
+    if (passwordForm) {
+        passwordForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(passwordForm);
+            const submitButton = passwordForm.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            
+            try {
+                // Show loading state
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...';
+                
+                const response = await fetch(passwordForm.action || window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Show success toast
+                    showToast('Password updated successfully!', 'success');
+                    
+                    // Clear form
+                    passwordForm.reset();
+                    
+                    // Reload the page after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    // Show error toast
+                    showToast('Error updating password. Please check the form for errors.', 'danger');
+                    
+                    // Handle validation errors
+                    clearFormErrors(passwordForm);
+                    Object.keys(result.errors || {}).forEach(field => {
+                        const input = passwordForm.querySelector(`[name="${field}"]`);
+                        if (input) {
+                            input.classList.add('is-invalid');
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'invalid-feedback';
+                            errorDiv.textContent = Array.isArray(result.errors[field]) 
+                                ? result.errors[field][0] 
+                                : result.errors[field];
+                            input.parentNode.insertBefore(errorDiv, input.nextSibling);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('An error occurred. Please try again.', 'danger');
+            } finally {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        });
+    }
+    
+    // Helper function to show toast messages
+    function showToast(message, type = 'info') {
+        const toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) return;
+        
+        const toastId = 'toast-' + Date.now();
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0 show" 
+                 role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                            data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        
+        // Add toast to container
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        // Initialize and show the toast
+        const toastEl = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 5000
+        });
+        toast.show();
+        
+        // Remove toast from DOM after it's hidden
+        toastEl.addEventListener('hidden.bs.toast', function() {
+            toastEl.remove();
+        });
+    }
+    
+    // Helper function to clear form errors
+    function clearFormErrors(form) {
+        // Remove all invalid classes and error messages
+        form.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+        });
+        form.querySelectorAll('.invalid-feedback').forEach(el => {
+            el.remove();
+        });
+    }
+});
+</script>
+{% endblock %}

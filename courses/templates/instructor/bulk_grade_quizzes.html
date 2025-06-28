@@ -1,0 +1,203 @@
+{% extends 'instructor/base.html' %}
+{% load static %}
+
+{% block page_title %}Bulk Grade Quiz Questions{% endblock %}
+
+{% block dashboard_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Bulk Grade Quiz Questions</h5>
+                <div>
+                    <a href="{% url 'instructor:instructor_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="course_filter" class="form-label">Filter by Course</label>
+                                <select name="course_id" id="course_filter" class="form-select" onchange="this.form.submit()">
+                                    <option value="">All Courses</option>
+                                    {% for course in courses %}
+                                        <option value="{{ course.id }}" {% if selected_course == course.id %}selected{% endif %}>
+                                            {{ course.title }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="quiz_filter" class="form-label">Filter by Quiz</label>
+                                <select name="quiz_id" id="quiz_filter" class="form-select" onchange="this.form.submit()" {% if not selected_course %}disabled{% endif %}>
+                                    <option value="">All Quizzes</option>
+                                    {% if selected_course %}
+                                        {% for quiz in quizzes %}
+                                            <option value="{{ quiz.id }}" {% if selected_quiz == quiz.id %}selected{% endif %}>
+                                                {{ quiz.title }}
+                                            </option>
+                                        {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="d-flex justify-content-end align-items-center h-100">
+                            <div class="me-3">
+                                <span class="badge bg-primary">{{ questions.paginator.count }}</span> questions with ungraded answers
+                                <span class="badge bg-warning ms-2">{{ total_ungraded }}</span> total ungraded answers
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if questions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Question</th>
+                                    <th>Quiz</th>
+                                    <th>Course</th>
+                                    <th>Ungraded Answers</th>
+                                    <th>Points</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for question in questions %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">
+                                                {{ question.text|truncatechars:100 }}
+                                            </div>
+                                            <small class="text-muted">{{ question.get_question_format_display }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ question.quiz.title }}</div>
+                                            <small class="text-muted">{{ question.quiz.course.title }}</small>
+                                        </td>
+                                        <td>{{ question.quiz.course.title }}</td>
+                                        <td>
+                                            <span class="badge bg-warning">{{ question.ungraded_count }}</span>
+                                        </td>
+                                        <td>{{ question.points }}</td>
+                                        <td class="text-end">
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'instructor:grade_quiz_question' quiz_id=question.quiz.id question_id=question.id %}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i> Grade
+                                                </a>
+                                                <a href="{% url 'instructor:quiz_detail' quiz_id=question.quiz.id %}" 
+                                                   class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-search"></i> View
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if questions.has_other_pages %}
+                        <nav aria-label="Page navigation" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if questions.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ questions.previous_page_number }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_quiz %}&quiz_id={{ selected_quiz }}{% endif %}" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&laquo;</span>
+                                    </li>
+                                {% endif %}
+
+                                {% for i in questions.paginator.page_range %}
+                                    {% if questions.number == i %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ i }} <span class="visually-hidden">(current)</span></span>
+                                        </li>
+                                    {% else %}
+                                        {% if i > questions.number|add:'-3' and i < questions.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ i }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_quiz %}&quiz_id={{ selected_quiz }}{% endif %}">{{ i }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if questions.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ questions.next_page_number }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_quiz %}&quiz_id={{ selected_quiz }}{% endif %}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&raquo;</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="fas fa-check-circle fa-4x text-success"></i>
+                        </div>
+                        <h5>No ungraded questions found!</h5>
+                        <p class="text-muted">All quiz questions have been graded for the selected filters.</p>
+                        <a href="{% url 'instructor:bulk_grade_quizzes' %}" class="btn btn-outline-primary mt-2">
+                            <i class="fas fa-sync-alt me-1"></i> Reset Filters
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle course filter change to update quizzes
+    const courseFilter = document.getElementById('course_filter');
+    const quizFilter = document.getElementById('quiz_filter');
+    
+    if (courseFilter) {
+        courseFilter.addEventListener('change', function() {
+            const courseId = this.value;
+            const url = new URL(window.location.href);
+            
+            // Update URL parameters
+            if (courseId) {
+                url.searchParams.set('course_id', courseId);
+                url.searchParams.delete('quiz_id'); // Reset quiz filter
+            } else {
+                url.searchParams.delete('course_id');
+                url.searchParams.delete('quiz_id');
+            }
+            
+            // Reload page with new filters
+            window.location.href = url.toString();
+        });
+    }
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,360 @@
+{% extends 'instructor/base.html' %}
+{% load humanize %}
+
+{% block page_title %}Grade Quiz - {{ quiz.title }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <a href="{% if submission %}{% url 'instructor:student_submission_detail' submission.id %}{% else %}{% url 'instructor:quiz_detail' quiz.id %}{% endif %}" class="text-decoration-none">
+                        <i class="fas fa-arrow-left me-2"></i>
+                    </a>
+                    Grading: {{ quiz.title }}
+                    {% if submission %}
+                        <span class="text-muted">• {{ submission.student.get_full_name|default:submission.student.username }}</span>
+                    {% endif %}
+                </h5>
+                <div>
+                    <span class="badge bg-{{ submission.is_graded|yesno:'success,secondary' }}">
+                        {% if submission %}
+                            {{ submission.graded_answers.count }} of {{ submission.answers.count }} questions graded
+                        {% else %}
+                            Bulk Grading Mode
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            {% if submission %}
+            <div class="card-body py-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-muted">Student</small>
+                        <p class="mb-0">
+                            <i class="fas fa-user-graduate me-2"></i>
+                            {{ submission.student.get_full_name|default:submission.student.username }}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Submitted</small>
+                        <p class="mb-0">
+                            <i class="far fa-clock me-2"></i>
+                            {{ submission.submitted_at|timesince }} ago
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Score</small>
+                        <p class="mb-0">
+                            <i class="fas fa-star me-2"></i>
+                            {{ submission.score|default:0|floatformat:1 }} / {{ quiz.total_points }}
+                            ({{ submission.percentage|default:0|floatformat:1 }}%)
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card-body border-top">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="mb-0">
+                        {% if question %}
+                            Question {{ question_number }} of {{ total_questions }}
+                        {% else %}
+                            All Questions
+                        {% endif %}
+                    </h6>
+                    <div class="btn-group" role="group">
+                        <a href="{% if submission %}{% url 'instructor:grade_quiz_question' quiz.id 'all' %}{% else %}{% url 'instructor:grade_quiz' quiz.id %}{% endif %}" 
+                           class="btn btn-sm btn-outline-secondary{% if not question %} active{% endif %}">
+                            <i class="fas fa-list-ul me-1"></i> All Questions
+                        </a>
+                        <a href="{% if submission %}{% url 'instructor:grade_quiz_question' quiz.id 'ungraded' %}{% else %}{% url 'instructor:grade_ungraded_questions' quiz.id %}{% endif %}" 
+                           class="btn btn-sm btn-outline-warning{% if question_id == 'ungraded' %} active{% endif %}">
+                            <i class="fas fa-question-circle me-1"></i> Ungraded
+                        </a>
+                    </div>
+                </div>
+                
+                {% if question %}
+                    <!-- Single Question Grading -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    Question {{ question_number }} of {{ total_questions }}
+                                    <span class="badge bg-primary ms-2">{{ question.points }} point{{ question.points|pluralize }}</span>
+                                </h6>
+                                <span class="badge bg-{{ question_grade.is_correct|yesno:'success,danger,secondary' }}">
+                                    {% if question_grade %}
+                                        {{ question_grade.points_earned|default:0 }} / {{ question.points }} points
+                                    {% else %}
+                                        Not Graded
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h6>Question</h6>
+                                <div class="p-3 bg-light rounded">
+                                    {{ question.text|linebreaks }}
+                                </div>
+                                
+                                {% if question.question_format == 'multiple_choice' or question.question_format == 'true_false' %}
+                                    <div class="mt-3">
+                                        <h6>Options</h6>
+                                        <div class="list-group">
+                                            {% for choice in question.choices.all %}
+                                                <div class="list-group-item {% if choice.is_correct %}list-group-item-success{% endif %}">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" 
+                                                               type="{% if question.question_format == 'multiple_choice' %}checkbox{% else %}radio{% endif %}" 
+                                                               {% if choice in student_answers %}checked{% endif %} 
+                                                               disabled>
+                                                        <label class="form-check-label {% if choice.is_correct %}fw-bold{% endif %}">
+                                                            {{ choice.text }}
+                                                            {% if choice.is_correct %}
+                                                                <span class="badge bg-success ms-2">Correct</span>
+                                                            {% endif %}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="mt-4">
+                                    <h6>Student's Answer</h6>
+                                    <div class="p-3 bg-light rounded">
+                                        {% if question.question_format == 'short_answer' or question.question_format == 'essay' %}
+                                            {% if student_answers %}
+                                                {{ student_answers.0.text_answer|linebreaks }}
+                                            {% else %}
+                                                <span class="text-muted">No answer provided</span>
+                                            {% endif %}
+                                        {% elif question.question_format == 'true_false' %}
+                                            {% with answer=student_answers|first %}
+                                                {% if answer %}
+                                                    {{ answer.boolean_answer|yesno:"True,False" }}
+                                                {% else %}
+                                                    <span class="text-muted">No answer provided</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% else %}
+                                            <ul class="mb-0">
+                                                {% for answer in student_answers %}
+                                                    <li>{{ answer.selected_choice.text }}</li>
+                                                {% empty %}
+                                                    <li class="text-muted">No answer provided</li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <form method="post" class="mt-4">
+                                {% csrf_token %}
+                                <input type="hidden" name="question_id" value="{{ question.id }}">
+                                
+                                <div class="mb-3">
+                                    <label for="points_earned" class="form-label">
+                                        Points (0 - {{ question.points }})
+                                    </label>
+                                    <input type="number" 
+                                           class="form-control{% if form.points_earned.errors %} is-invalid{% endif %}" 
+                                           id="points_earned" 
+                                           name="points_earned" 
+                                           min="0" 
+                                           max="{{ question.points }}" 
+                                           step="0.1"
+                                           value="{{ form.points_earned.value|default:question_grade.points_earned|default:0 }}"
+                                           required>
+                                    {% if form.points_earned.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.points_earned.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="feedback" class="form-label">Feedback</label>
+                                    <textarea class="form-control{% if form.feedback.errors %} is-invalid{% endif %}" 
+                                              id="feedback" 
+                                              name="feedback" 
+                                              rows="3"
+                                              placeholder="Provide feedback to the student...">{{ form.feedback.value|default:question_grade.feedback|default:'' }}</textarea>
+                                    {% if form.feedback.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.feedback.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        {% if previous_question %}
+                                            <a href="{% url 'instructor:grade_quiz_question' quiz.id previous_question.id %}{% if submission %}?submission={{ submission.id }}{% endif %}" 
+                                               class="btn btn-outline-secondary">
+                                                <i class="fas fa-arrow-left me-1"></i> Previous
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary me-2">
+                                            <i class="fas fa-save me-1"></i> Save Grade
+                                        </button>
+                                        {% if next_question %}
+                                            <button type="submit" name="next" value="1" class="btn btn-primary">
+                                                Save & Next <i class="fas fa-arrow-right ms-1"></i>
+                                            </button>
+                                        {% else %}
+                                            <a href="{% url 'instructor:student_submission_detail' submission.id %}" class="btn btn-success">
+                                                Finish Grading <i class="fas fa-check ms-1"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Bulk Grading View -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Question</th>
+                                    <th>Type</th>
+                                    <th>Points</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for q in questions %}
+                                    {% with answer=submission.answers.get_question_answer q %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ q.text|truncatewords:10 }}</td>
+                                        <td>{{ q.get_question_format_display }}</td>
+                                        <td>{{ q.points }}</td>
+                                        <td>
+                                            {% if answer and answer.is_graded %}
+                                                <span class="badge bg-success">
+                                                    {{ answer.points_earned|default:0 }} / {{ q.points }}
+                                                </span>
+                                            {% elif answer %}
+                                                <span class="badge bg-warning text-dark">Needs Grading</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Not Answered</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="{% url 'instructor:grade_quiz_question' quiz.id q.id %}{% if submission %}?submission={{ submission.id }}{% endif %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i> Grade
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if submission %}
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div>
+                            <h6 class="mb-0">Grading Progress</h6>
+                            <small class="text-muted">
+                                {{ submission.graded_answers.count }} of {{ submission.answers.count }} questions graded
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <a href="{% url 'instructor:student_submission_detail' submission.id %}" class="btn btn-primary">
+                                <i class="fas fa-check-circle me-1"></i> Finish Grading
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Keyboard shortcuts for navigation
+    document.addEventListener('keydown', function(e) {
+        // Only if we're not in an input field
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        
+        // Left arrow - previous question
+        if (e.key === 'ArrowLeft' && document.querySelector('a[rel="prev"]')) {
+            e.preventDefault();
+            document.querySelector('a[rel="prev"]').click();
+        }
+        
+        // Right arrow - next question
+        if (e.key === 'ArrowRight' && document.querySelector('button[name="next"]')) {
+            e.preventDefault();
+            document.querySelector('button[name="next"]').click();
+        }
+        
+        // S - save
+        if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            const form = document.querySelector('form');
+            if (form) {
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton) submitButton.click();
+            }
+        }
+    });
+    
+    // Auto-resize textareas
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        // Set initial height
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+        
+        // Auto-resize on input
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        
+        // Tab key support
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                
+                // Set textarea value to: text before caret + tab + text after caret
+                this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+                
+                // Put caret at right position again
+                this.selectionStart = this.selectionEnd = start + 1;
+                
+                // Trigger the input event for auto-resize
+                this.dispatchEvent(new Event('input'));
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
