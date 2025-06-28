@@ -12,8 +12,8 @@
                     <h2 class="card-title">Payment Successful!</h2>
                     <p class="card-text">Thank you for your purchase. You have been successfully enrolled in the course.</p>
                     <div class="mt-4">
-                        <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary">Go to Course</a>
-                        <a href="{% url 'course_list' %}" class="btn btn-outline-primary">Browse More Courses</a>
+                        <a href="{% url 'courses:course_detail' course.slug %}" class="btn btn-primary">Go to Course</a>
+                        <a href="{% url 'courses:course_list' %}" class="btn btn-outline-primary">Browse More Courses</a>
                     </div>
                 </div>
             </div>

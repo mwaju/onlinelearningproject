@@ -1,0 +1,209 @@
+{% extends 'instructor/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit Assignment{% else %}Create Assignment{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        {% if form.instance.pk %}
+                            Edit Assignment: {{ form.instance.title }}
+                        {% else %}
+                            Create New Assignment
+                        {% endif %}
+                    </h3>
+                    {% if course %}
+                        <p class="text-muted mb-0">Course: {{ course.title }}</p>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- Basic Information -->
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.title.id_for_label }}" class="form-label">
+                                        Assignment Title <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.title }}
+                                    {% if form.title.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.title.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                                        Description <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.description }}
+                                    {% if form.description.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.description.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        Provide clear instructions for students about what they need to submit.
+                                    </small>
+                                </div>
+
+                                <!-- Course Selection (if not pre-selected) -->
+                                {% if not course %}
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.course.id_for_label }}" class="form-label">
+                                        Course <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.course }}
+                                    {% if form.course.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.course.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+
+                                <!-- Module Selection -->
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.module.id_for_label }}" class="form-label">
+                                        Module (Optional)
+                                    </label>
+                                    {{ form.module }}
+                                    {% if form.module.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.module.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        Select a module if this assignment is part of a specific module.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <!-- Assignment Settings -->
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">Assignment Settings</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.due_date.id_for_label }}" class="form-label">
+                                                Due Date <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.due_date }}
+                                            {% if form.due_date.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.due_date.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.total_points.id_for_label }}" class="form-label">
+                                                Total Points <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.total_points }}
+                                            {% if form.total_points.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.total_points.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                            <small class="form-text text-muted">
+                                                Maximum points students can earn for this assignment.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% if course %}{% url 'courses:instructor_assignment_list' course.id %}{% else %}{% url 'courses:instructor_assignment_list' %}{% endif %}" 
+                                       class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                                    </a>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>
+                                            {% if form.instance.pk %}Update Assignment{% else %}Create Assignment{% endif %}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-update module choices when course changes
+    const courseSelect = document.getElementById('{{ form.course.id_for_label }}');
+    const moduleSelect = document.getElementById('{{ form.module.id_for_label }}');
+    
+    if (courseSelect && moduleSelect) {
+        courseSelect.addEventListener('change', function() {
+            const courseId = this.value;
+            if (courseId) {
+                // Clear current module options
+                moduleSelect.innerHTML = '<option value="">---------</option>';
+                
+                // Fetch modules for the selected course
+                fetch(`/courses/api/courses/${courseId}/modules/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(module => {
+                            const option = document.createElement('option');
+                            option.value = module.id;
+                            option.textContent = module.title;
+                            moduleSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching modules:', error);
+                    });
+            } else {
+                // Clear modules if no course is selected
+                moduleSelect.innerHTML = '<option value="">---------</option>';
+            }
+        });
+    }
+    
+    // Set minimum date for due date to today
+    const dueDateInput = document.getElementById('{{ form.due_date.id_for_label }}');
+    if (dueDateInput) {
+        const today = new Date().toISOString().slice(0, 16);
+        dueDateInput.min = today;
+    }
+});
+</script>
+{% endblock %} 

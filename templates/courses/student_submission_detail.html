@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Submission Details - {{ assignment.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.submission-header {
+    background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.submission-content {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.grade-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.grade-display {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.grade-a { 
+    background-color: #d4edda; 
+    color: #155724; 
+}
+
+.grade-b { 
+    background-color: #d1ecf1; 
+    color: #0c5460; 
+}
+
+.grade-c { 
+    background-color: #fff3cd; 
+    color: #856404; 
+}
+
+.grade-d { 
+    background-color: #f8d7da; 
+    color: #721c24; 
+}
+
+.grade-f { 
+    background-color: #f8d7da; 
+    color: #721c24; 
+}
+
+.feedback-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.submission-text {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.file-section {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.status-badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-weight: 500;
+}
+
+.status-late {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.status-on-time {
+    background-color: #d4edda;
+    color: #155724;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Submission Header -->
+<section class="submission-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="{% url 'courses:student_assignments' %}" class="text-white">My Assignments</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'courses:student_assignment_detail' assignment.id %}" class="text-white">{{ assignment.title }}</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">Submission Details</li>
+                    </ol>
+                </nav>
+                <h1 class="h2 mb-2">Submission Details</h1>
+                <p class="mb-0">{{ assignment.title }} - {{ assignment.course.title }}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="status-badge {% if submission.submitted_at > assignment.due_date %}status-late{% else %}status-on-time{% endif %}">
+                    {% if submission.submitted_at > assignment.due_date %}
+                        Late Submission
+                    {% else %}
+                        On Time
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <div class="row">
+        <!-- Submission Details -->
+        <div class="col-lg-8">
+            <div class="submission-content">
+                <h3 class="mb-3">Your Submission</h3>
+                
+                <!-- Submission Text -->
+                {% if submission.submission_text %}
+                    <div class="submission-text">
+                        <h5>Text Submission</h5>
+                        <p>{{ submission.submission_text|linebreaks }}</p>
+                    </div>
+                {% endif %}
+                
+                <!-- Submission File -->
+                {% if submission.submission_file %}
+                    <div class="file-section">
+                        <h5>File Submission</h5>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file fa-2x text-primary me-3"></i>
+                            <div>
+                                <p class="mb-1"><strong>{{ submission.submission_file.name|slice:"19:" }}</strong></p>
+                                <small class="text-muted">Uploaded on {{ submission.submitted_at|date:"M d, Y g:i A" }}</small>
+                            </div>
+                            <a href="{{ submission.submission_file.url }}" target="_blank" class="btn btn-outline-primary ms-auto">
+                                <i class="fas fa-download me-1"></i>Download
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <!-- Submission Info -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-clock me-2"></i>Submission Time</h6>
+                        <p>{{ submission.submitted_at|date:"F d, Y g:i A" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-calendar me-2"></i>Due Date</h6>
+                        <p>{{ assignment.due_date|date:"F d, Y g:i A" }}</p>
+                    </div>
+                </div>
+                
+                {% if submission.submitted_at > assignment.due_date %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Late Submission:</strong> This assignment was submitted {{ submission.submitted_at|timesince:assignment.due_date }} after the deadline.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Grade and Feedback -->
+        <div class="col-lg-4">
+            <div class="grade-section">
+                <h4 class="mb-3">Grade & Feedback</h4>
+                
+                {% if submission.graded_at %}
+                    <!-- Graded Submission -->
+                    <div class="grade-display 
+                        {% if submission.grade >= 90 %}grade-a
+                        {% elif submission.grade >= 80 %}grade-b
+                        {% elif submission.grade >= 70 %}grade-c
+                        {% elif submission.grade >= 60 %}grade-d
+                        {% else %}grade-f{% endif %}">
+                        {{ submission.grade }}/{{ assignment.total_points }}
+                    </div>
+                    
+                    <div class="text-center mb-3">
+                        <small class="text-muted">
+                            {% if submission.grade >= 90 %}
+                                Excellent work!
+                            {% elif submission.grade >= 80 %}
+                                Good job!
+                            {% elif submission.grade >= 70 %}
+                                Satisfactory
+                            {% elif submission.grade >= 60 %}
+                                Needs improvement
+                            {% else %}
+                                Failed
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <div class="feedback-section">
+                        <h6>Instructor Feedback</h6>
+                        <p>{{ submission.feedback|linebreaks }}</p>
+                        <hr>
+                        <small class="text-muted">
+                            <i class="fas fa-user me-1"></i>Graded by {{ submission.graded_by.get_full_name }}<br>
+                            <i class="fas fa-calendar me-1"></i>{{ submission.graded_at|date:"M d, Y g:i A" }}
+                        </small>
+                    </div>
+                    
+                {% else %}
+                    <!-- Not graded yet -->
+                    <div class="text-center">
+                        <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                        <h5 class="text-muted">Not Graded Yet</h5>
+                        <p class="text-muted">Your submission is being reviewed by the instructor.</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Assignment Info -->
+            <div class="grade-section">
+                <h5 class="mb-3">Assignment Information</h5>
+                <div class="row">
+                    <div class="col-6">
+                        <small class="text-muted">Course</small>
+                        <p class="mb-2">{{ assignment.course.title }}</p>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Points</small>
+                        <p class="mb-2">{{ assignment.total_points }} points</p>
+                    </div>
+                </div>
+                {% if assignment.module %}
+                    <div class="row">
+                        <div class="col-12">
+                            <small class="text-muted">Module</small>
+                            <p class="mb-2">{{ assignment.module.title }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="row">
+                    <div class="col-12">
+                        <small class="text-muted">Instructor</small>
+                        <p class="mb-0">{{ assignment.course.instructor.get_full_name }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

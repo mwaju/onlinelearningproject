@@ -4,89 +4,353 @@
 {% block title %}Welcome to Online Learning Platform{% endblock %}
 
 {% block extra_css %}
-<style type="text/css">
-.hero-section {
-    background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-                url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&h=1080&fit=crop') center/cover;
-    color: white;
-    padding: 8rem 0;
-    margin-bottom: 4rem;
+<style>
+:root {
+    --primary-color: #4f46e5;
+    --secondary-color: #7c3aed;
+    --accent-color: #06b6d4;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --dark-color: #1f2937;
+    --light-color: #f8fafc;
+    --border-color: #e2e8f0;
+    --text-muted: #64748b;
 }
 
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 6rem 0 4rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.3;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(45deg, #fff, #e0e7ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+/* SVG Placeholder Components */
+.svg-placeholder {
+    background: #f1f5f9;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.svg-placeholder:hover {
+    border-color: var(--primary-color);
+    background: #f8fafc;
+}
+
+.course-image-placeholder {
+    height: 200px;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.profile-image-placeholder {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border: 2px dashed #cbd5e1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 0.75rem;
+    margin: 0 auto 1rem;
+}
+
+/* Cards */
 .feature-card {
     background: white;
-    border-radius: 15px;
-    padding: 2rem;
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
 }
 
 .feature-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .feature-icon {
-    font-size: 2.5rem;
-    color: var(--primary-color);
-    margin-bottom: 1rem;
+    font-size: 3rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1.5rem;
 }
 
 .course-card {
     background: white;
-    border-radius: 15px;
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
     margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
 }
 
 .course-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .course-image {
     height: 200px;
     object-fit: cover;
+    width: 100%;
 }
 
+.course-content {
+    padding: 1.5rem;
+}
+
+.course-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--dark-color);
+}
+
+.course-instructor {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.course-price {
+    font-weight: 600;
+    color: var(--success-color);
+    font-size: 1.125rem;
+}
+
+/* Live Sessions & Discussions */
+.live-session-card, .discussion-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.live-session-card:hover, .discussion-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.live-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--danger-color);
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Testimonials */
 .testimonial-card {
     background: white;
-    border-radius: 15px;
+    border-radius: 16px;
     padding: 2rem;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--border-color);
+    text-align: center;
 }
 
-.testimonial-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin-bottom: 1rem;
-    object-fit: cover;
-}
-
-.cta-section {
-    background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
-    color: white;
-    padding: 4rem 0;
-    margin-top: 4rem;
-}
-
+/* Sections */
 .section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 3rem;
+    color: var(--dark-color);
     position: relative;
-    margin-bottom: 2rem;
-    padding-bottom: 0.5rem;
 }
 
 .section-title::after {
     content: '';
     position: absolute;
-    bottom: 0;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 2px;
+}
+
+.section-subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+    margin-bottom: 3rem;
+}
+
+/* CTA Section */
+.cta-section {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    padding: 5rem 0;
+    margin-top: 5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.cta-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
     left: 0;
-    width: 50px;
-    height: 3px;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.3;
+}
+
+.cta-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* Personalization for logged-in users */
+.welcome-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.welcome-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--border-color);
+}
+
+.quick-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+.quick-action-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
     background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.quick-action-btn:hover {
+    background: var(--secondary-color);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .feature-card {
+        padding: 2rem 1.5rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-on-scroll {
+    animation: fadeInUp 0.6s ease-out;
 }
 </style>
 {% endblock %}
@@ -97,41 +361,169 @@
     <div class="container">
         <div class="row justify-content-center text-center">
             <div class="col-lg-8">
-                <h1 class="display-4 fw-bold mb-4">Learn Without Limits</h1>
-                <p class="lead mb-5">Start, switch, or advance your career with thousands of courses from expert instructors.</p>
-                <div class="d-flex justify-content-center gap-3">
-                    <a href="{% url 'courses:course_list' %}" class="btn btn-primary btn-lg">Browse Courses</a>
-                    <a href="{% url 'users:register' %}" class="btn btn-outline-light btn-lg">Get Started</a>
+                <div class="hero-content">
+                    <h1 class="hero-title">Learn Without Limits</h1>
+                    <p class="hero-subtitle">Start, switch, or advance your career with thousands of courses from expert instructors.</p>
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="{% url 'courses:course_list' %}" class="btn btn-light btn-lg px-4 py-3">
+                            <i class="fas fa-search me-2"></i>Browse Courses
+                        </a>
+                        {% if not user.is_authenticated %}
+                            <a href="{% url 'users:register' %}" class="btn btn-outline-light btn-lg px-4 py-3">
+                                <i class="fas fa-user-plus me-2"></i>Get Started
+                            </a>
+                        {% else %}
+                            <a href="{% if user.is_instructor %}{% url 'courses:instructor_dashboard' %}{% else %}{% url 'courses:student_dashboard' %}{% endif %}" class="btn btn-outline-light btn-lg px-4 py-3">
+                                <i class="fas fa-tachometer-alt me-2"></i>My Dashboard
+                            </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
+{% if user.is_authenticated %}
+<!-- Welcome Section for Logged-in Users -->
+<section class="welcome-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="welcome-card">
+                    <h2 class="h3 mb-3">Welcome back, {{ user.get_full_name|default:user.username }}!</h2>
+                    <p class="text-muted mb-3">Continue your learning journey or explore new opportunities.</p>
+                    
+                    <div class="quick-actions">
+                        {% if user.is_instructor %}
+                            <a href="{% url 'courses:instructor_dashboard' %}" class="quick-action-btn">
+                                <i class="fas fa-chalkboard-teacher me-2"></i>Instructor Dashboard
+                            </a>
+                            <a href="{% url 'courses:instructor_assignment_list' %}" class="quick-action-btn">
+                                <i class="fas fa-tasks me-2"></i>Grade Assignments
+                            </a>
+                            <a href="{% url 'courses:course_create' %}" class="quick-action-btn">
+                                <i class="fas fa-plus me-2"></i>Create Course
+                            </a>
+                        {% else %}
+                            <a href="{% url 'courses:student_dashboard' %}" class="quick-action-btn">
+                                <i class="fas fa-graduation-cap me-2"></i>My Learning
+                            </a>
+                            <a href="{% url 'courses:student_assignments' %}" class="quick-action-btn">
+                                <i class="fas fa-clipboard-list me-2"></i>My Assignments
+                            </a>
+                            <a href="{% url 'courses:student_grades' %}" class="quick-action-btn">
+                                <i class="fas fa-chart-line me-2"></i>My Grades
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="welcome-card">
+                    <h4 class="h5 mb-3">Quick Stats</h4>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="stats-number">{{ user.enrollments.count|default:0 }}</div>
+                            <div class="stats-label">Enrolled Courses</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stats-number">{{ user.completed_courses.count|default:0 }}</div>
+                            <div class="stats-label">Completed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Live Sessions Section -->
+{% if live_sessions %}
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title">Live Sessions</h2>
+        <p class="section-subtitle">Join interactive live sessions with instructors and fellow students</p>
+        <div class="row">
+            {% for session in live_sessions %}
+            <div class="col-md-6 col-lg-4">
+                <div class="live-session-card">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="mb-1">{{ session.title }}</h5>
+                        {% if session.status == 'live' %}
+                            <span class="badge bg-danger">
+                                <span class="live-indicator"></span>Live Now
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ session.start_time|date:"M d, g:i A" }}</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-muted small mb-2">{{ session.course.title }}</p>
+                    <p class="mb-3">{{ session.description|truncatewords:20 }}</p>
+                    <a href="{% url 'live_sessions:session_detail' session.id %}" class="btn btn-primary btn-sm">
+                        {% if session.status == 'live' %}Join Now{% else %}Set Reminder{% endif %}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Recent Discussions Section -->
+{% if discussions %}
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="section-title">Recent Discussions</h2>
+        <p class="section-subtitle">Engage with the community in course discussions</p>
+        <div class="row">
+            {% for discussion in discussions %}
+            <div class="col-md-6 col-lg-4">
+                <div class="discussion-card">
+                    <h5 class="mb-2">{{ discussion.title }}</h5>
+                    <p class="text-muted small mb-2">{{ discussion.course.title }}</p>
+                    <p class="mb-3">{{ discussion.content|truncatewords:15 }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ discussion.created_at|timesince }} ago</small>
+                        <a href="{% url 'discussions:discussion_detail' discussion.id %}" class="btn btn-outline-primary btn-sm">
+                            View Discussion
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endif %}
+
 <!-- Features Section -->
 <section class="py-5">
     <div class="container">
-        <h2 class="text-center mb-5">Why Choose Our Platform</h2>
+        <h2 class="section-title">Why Choose Our Platform</h2>
+        <p class="section-subtitle">Discover what makes our learning platform unique</p>
         <div class="row">
             <div class="col-md-4">
                 <div class="feature-card text-center">
                     <i class="fas fa-graduation-cap feature-icon"></i>
                     <h3 class="h4 mb-3">Expert Instructors</h3>
-                    <p class="mb-0">Learn from industry experts who are passionate about teaching.</p>
+                    <p class="mb-0">Learn from industry experts who are passionate about teaching and sharing their knowledge.</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="feature-card text-center">
                     <i class="fas fa-laptop-code feature-icon"></i>
                     <h3 class="h4 mb-3">Learn Anywhere</h3>
-                    <p class="mb-0">Access your courses on any device, anytime, anywhere.</p>
+                    <p class="mb-0">Access your courses on any device, anytime, anywhere. Your learning journey never stops.</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="feature-card text-center">
                     <i class="fas fa-certificate feature-icon"></i>
                     <h3 class="h4 mb-3">Get Certified</h3>
-                    <p class="mb-0">Earn certificates to showcase your new skills.</p>
+                    <p class="mb-0">Earn certificates to showcase your new skills and advance your career.</p>
                 </div>
             </div>
         </div>
@@ -142,20 +534,42 @@
 <section class="py-5 bg-light">
     <div class="container">
         <h2 class="section-title">Popular Courses</h2>
+        <p class="section-subtitle">Explore our most popular courses and start your learning journey</p>
         <div class="row">
             {% for course in popular_courses %}
             <div class="col-md-6 col-lg-4">
                 <div class="course-card">
-                    <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="course-image">
-                    <div class="p-3">
-                        <h3 class="h5 mb-2">{{ course.title }}</h3>
-                        <p class="text-muted small mb-2">Instructor: {{ course.instructor.get_full_name }}</p>
+                    {% if course.thumbnail %}
+                        <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="course-image">
+                    {% else %}
+                        <div class="course-image-placeholder">
+                            <div class="text-center">
+                                <i class="fas fa-image fa-2x mb-2"></i>
+                                <div>No Image Available</div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="course-content">
+                        <h3 class="course-title">{{ course.title }}</h3>
+                        <p class="course-instructor">
+                            <i class="fas fa-user me-1"></i>{{ course.instructor.get_full_name|default:course.instructor.username }}
+                        </p>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-primary">${{ course.price }}</span>
+                            <span class="course-price">${{ course.price|default:"Free" }}</span>
                             <a href="{% url 'courses:course_detail' course.slug %}" class="btn btn-outline-primary btn-sm">
                                 View Course
                             </a>
                         </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center">
+                <div class="svg-placeholder" style="height: 300px;">
+                    <div class="text-center">
+                        <i class="fas fa-book fa-3x mb-3"></i>
+                        <div>No courses available yet</div>
+                        <small>Check back soon for new courses!</small>
                     </div>
                 </div>
             </div>
@@ -167,27 +581,34 @@
 <!-- Testimonials Section -->
 <section class="py-5">
     <div class="container">
-        <h2 class="text-center mb-5">What Our Students Say</h2>
+        <h2 class="section-title">What Our Students Say</h2>
+        <p class="section-subtitle">Hear from our community of learners</p>
         <div class="row">
             <div class="col-md-4">
-                <div class="testimonial-card text-center">
-                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop" alt="Sarah Johnson" class="testimonial-image">
+                <div class="testimonial-card">
+                    <div class="profile-image-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
                     <h3 class="h5 mb-2">Sarah Johnson</h3>
                     <p class="text-muted small mb-3">Web Development Student</p>
                     <p class="mb-0">"The courses are well-structured and the instructors are incredibly knowledgeable. I've learned so much in such a short time!"</p>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="testimonial-card text-center">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop" alt="Michael Chen" class="testimonial-image">
+                <div class="testimonial-card">
+                    <div class="profile-image-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
                     <h3 class="h5 mb-2">Michael Chen</h3>
                     <p class="text-muted small mb-3">Data Science Student</p>
                     <p class="mb-0">"The platform's flexibility allowed me to learn at my own pace while working full-time. The quality of content is outstanding."</p>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="testimonial-card text-center">
-                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop" alt="Emily Rodriguez" class="testimonial-image">
+                <div class="testimonial-card">
+                    <div class="profile-image-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
                     <h3 class="h5 mb-2">Emily Rodriguez</h3>
                     <p class="text-muted small mb-3">Digital Marketing Student</p>
                     <p class="mb-0">"The practical projects and real-world examples made learning engaging and relevant. I highly recommend this platform!"</p>
@@ -202,9 +623,19 @@
     <div class="container">
         <div class="row justify-content-center text-center">
             <div class="col-lg-8">
-                <h2 class="display-5 fw-bold mb-4">Ready to Start Learning?</h2>
-                <p class="lead mb-5">Join thousands of students worldwide and start your learning journey today.</p>
-                <a href="{% url 'users:register' %}" class="btn btn-light btn-lg">Get Started Now</a>
+                <div class="cta-content">
+                    <h2 class="display-5 fw-bold mb-4">Ready to Start Learning?</h2>
+                    <p class="lead mb-5">Join thousands of students worldwide and start your learning journey today.</p>
+                    {% if not user.is_authenticated %}
+                        <a href="{% url 'users:register' %}" class="btn btn-light btn-lg px-5 py-3">
+                            <i class="fas fa-rocket me-2"></i>Get Started Now
+                        </a>
+                    {% else %}
+                        <a href="{% url 'courses:course_list' %}" class="btn btn-light btn-lg px-5 py-3">
+                            <i class="fas fa-search me-2"></i>Explore Courses
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -215,10 +646,32 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Add animation classes to elements
-    const elements = document.querySelectorAll('.feature-card, .course-card, .testimonial-card');
-    elements.forEach((element, index) => {
-        element.style.animationDelay = `${index * 0.1}s`;
-        element.classList.add('animate-on-scroll');
+    const elements = document.querySelectorAll('.feature-card, .course-card, .testimonial-card, .live-session-card, .discussion-card');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+                setTimeout(() => {
+                    entry.target.classList.add('animate-on-scroll');
+                }, index * 100);
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    elements.forEach(element => {
+        observer.observe(element);
+    });
+    
+    // Add hover effects
+    const cards = document.querySelectorAll('.course-card, .feature-card, .testimonial-card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
     });
 });
 </script>

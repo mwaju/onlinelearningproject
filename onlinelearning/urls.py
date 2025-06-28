@@ -23,34 +23,34 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
-# Import the instructor_urls from the courses app
-from courses import instructor_urls
-
 # Main URL configuration
 urlpatterns = [
     # Core and authentication URLs
     path('', include(('core.urls', 'core'), namespace='core')),
     path('admin/', admin.site.urls),
+    
+    # JWT Authentication URLs
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # User management URLs
     path('', include(('users.urls', 'users'), namespace='users')),
     
-    # Instructor URLs - must come before course URLs to avoid slug conflicts
-    path('instructor/', include((instructor_urls, 'instructor'))),
+    # Course URLs (includes instructor and student URLs)
+    path('', include(('courses.urls', 'courses'), namespace='courses')),
     
-    # Other app URLs
+    # App URLs with proper namespaces
     path('', include(('payments.urls', 'payments'), namespace='payments')),
     path('', include(('certificates.urls', 'certificates'), namespace='certificates')),
     path('', include(('discussions.urls', 'discussions'), namespace='discussions')),
     path('', include(('live_sessions.urls', 'live_sessions'), namespace='live_sessions')),
-    
-    # Course URLs - must come after instructor URLs
-    path('', include(('courses.urls', 'courses'), namespace='courses')),
 ]
 
+# Add static and media files serving
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
+# Admin site customization
 admin.site.site_header = "Online Learning Platform Admin"
 admin.site.site_title = "Online Learning Platform Admin"
 admin.site.index_title = "Welcome to Online Learning Platform Admin"

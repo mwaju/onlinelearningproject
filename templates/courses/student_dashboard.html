@@ -75,6 +75,31 @@
     height: 3px;
     background: var(--primary-color);
 }
+
+.quick-actions {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.quick-action-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+    margin: 0.25rem;
+}
+
+.quick-action-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+    transform: translateY(-2px);
+}
 </style>
 {% endblock %}
 
@@ -93,6 +118,20 @@
                 </a>
             </div>
         </div>
+        
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h5 class="mb-3">Quick Actions</h5>
+            <a href="{% url 'courses:student_assignments' %}" class="quick-action-btn">
+                <i class="fas fa-clipboard-list me-2"></i>My Assignments
+            </a>
+            <a href="{% url 'courses:student_grades' %}" class="quick-action-btn">
+                <i class="fas fa-chart-line me-2"></i>My Grades
+            </a>
+            <a href="{% url 'courses:course_list' %}" class="quick-action-btn">
+                <i class="fas fa-search me-2"></i>Browse Courses
+            </a>
+        </div>
     </div>
 </section>
 
@@ -100,22 +139,56 @@
 <section class="py-4">
     <div class="container">
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stats-card">
                     <div class="stats-number">{{ total_courses }}</div>
                     <p class="mb-0">Total Courses</p>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stats-card">
                     <div class="stats-number">{{ completed_count }}</div>
                     <p class="mb-0">Completed Courses</p>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stats-card">
-                    <div class="stats-number">{{ in_progress_count }}</div>
-                    <p class="mb-0">In Progress</p>
+                    <div class="stats-number">{{ total_assignments }}</div>
+                    <p class="mb-0">Total Assignments</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number">{{ graded_assignments }}</div>
+                    <p class="mb-0">Graded Assignments</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assignment Status Row -->
+        <div class="row mt-3">
+            <div class="col-md-3">
+                <div class="stats-card" style="border-left: 4px solid #ffc107;">
+                    <div class="stats-number" style="color: #ffc107;">{{ pending_assignments }}</div>
+                    <p class="mb-0">Pending</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="border-left: 4px solid #17a2b8;">
+                    <div class="stats-number" style="color: #17a2b8;">{{ submitted_assignments }}</div>
+                    <p class="mb-0">Submitted</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="border-left: 4px solid #28a745;">
+                    <div class="stats-number" style="color: #28a745;">{{ graded_assignments }}</div>
+                    <p class="mb-0">Graded</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="border-left: 4px solid #dc3545;">
+                    <div class="stats-number" style="color: #dc3545;">{{ overdue_assignments }}</div>
+                    <p class="mb-0">Overdue</p>
                 </div>
             </div>
         </div>

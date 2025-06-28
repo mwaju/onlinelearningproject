@@ -1,0 +1,251 @@
+{% extends 'instructor/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if question.pk %}Edit Question{% else %}Add Question{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        {% if question.pk %}
+                            Edit Question
+                        {% else %}
+                            Add Question to Quiz
+                        {% endif %}
+                    </h3>
+                    <p class="text-muted mb-0">Quiz: {{ quiz.title }}</p>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- Question Information -->
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.question_text.id_for_label }}" class="form-label">
+                                        Question Text <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.question_text }}
+                                    {% if form.question_text.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.question_text.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.question_format.id_for_label }}" class="form-label">
+                                                Question Format <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.question_format }}
+                                            {% if form.question_format.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.question_format.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.points.id_for_label }}" class="form-label">
+                                                Points <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.points }}
+                                            {% if form.points.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.points.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.order.id_for_label }}" class="form-label">
+                                        Order
+                                    </label>
+                                    {{ form.order }}
+                                    {% if form.order.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.order.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        The order in which this question appears in the quiz.
+                                    </small>
+                                </div>
+
+                                <!-- Hidden fields -->
+                                {{ form.question_type }}
+                                {{ form.quiz }}
+                                {{ form.assignment }}
+                            </div>
+
+                            <div class="col-md-4">
+                                <!-- Question Format Help -->
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">Question Format Help</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <strong>Multiple Choice:</strong>
+                                            <small class="d-block text-muted">
+                                                Students select one correct answer from multiple options.
+                                            </small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <strong>True/False:</strong>
+                                            <small class="d-block text-muted">
+                                                Students choose between true or false.
+                                            </small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <strong>Short Answer:</strong>
+                                            <small class="d-block text-muted">
+                                                Students provide a brief text response (auto-graded).
+                                            </small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <strong>Essay:</strong>
+                                            <small class="d-block text-muted">
+                                                Students provide a detailed response (manual grading required).
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Choices Section (for Multiple Choice and True/False) -->
+                        <div id="choices-section" class="mt-4" style="display: none;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Answer Choices</h5>
+                                </div>
+                                <div class="card-body">
+                                    {{ formset.management_form }}
+                                    <div id="choices-container">
+                                        {% for choice_form in formset %}
+                                        <div class="choice-form mb-3">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <label class="form-label">Choice {{ forloop.counter }}</label>
+                                                    {{ choice_form.choice_text }}
+                                                    {% if choice_form.choice_text.errors %}
+                                                        <div class="invalid-feedback d-block">
+                                                            {% for error in choice_form.choice_text.errors %}
+                                                                {{ error }}
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">Correct?</label>
+                                                    <div class="form-check">
+                                                        {{ choice_form.is_correct }}
+                                                        <label class="form-check-label" for="{{ choice_form.is_correct.id_for_label }}">
+                                                            Correct Answer
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">Order</label>
+                                                    {{ choice_form.order }}
+                                                </div>
+                                            </div>
+                                            {% if choice_form.DELETE %}
+                                            <div class="mt-2">
+                                                <div class="form-check">
+                                                    {{ choice_form.DELETE }}
+                                                    <label class="form-check-label" for="{{ choice_form.DELETE.id_for_label }}">
+                                                        Delete this choice
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <button type="button" id="add-choice" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-plus me-2"></i>Add Choice
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'courses:instructor_quiz_detail' quiz.id %}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                                    </a>
+                                    <div>
+                                        <button type="submit" name="add_another" value="1" class="btn btn-outline-primary me-2">
+                                            <i class="fas fa-plus me-2"></i>Save & Add Another
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>
+                                            {% if question.pk %}Update Question{% else %}Save Question{% endif %}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionFormatSelect = document.getElementById('{{ form.question_format.id_for_label }}');
+    const choicesSection = document.getElementById('choices-section');
+    
+    // Show/hide choices section based on question format
+    function toggleChoicesSection() {
+        const format = questionFormatSelect.value;
+        if (format === 'multiple_choice' || format === 'true_false') {
+            choicesSection.style.display = 'block';
+        } else {
+            choicesSection.style.display = 'none';
+        }
+    }
+    
+    // Initialize
+    toggleChoicesSection();
+    
+    // Listen for changes
+    questionFormatSelect.addEventListener('change', toggleChoicesSection);
+    
+    // Add Bootstrap classes to form fields
+    const formFields = document.querySelectorAll('input, select, textarea');
+    formFields.forEach(field => {
+        if (!field.classList.contains('form-check-input')) {
+            field.classList.add('form-control');
+        }
+    });
+});
+</script>
+{% endblock %} 

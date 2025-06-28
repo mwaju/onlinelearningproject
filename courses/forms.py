@@ -54,8 +54,31 @@ class AssignmentForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        course = kwargs.pop('course', None)
         super().__init__(*args, **kwargs)
+        
+        # Filter course choices to only show courses owned by the user
+        if user:
+            self.fields['course'].queryset = Course.objects.filter(instructor=user)
+        
+        # If a specific course is provided, set it and make the field read-only
+        if course:
+            self.fields['course'].initial = course
+            self.fields['course'].widget = forms.HiddenInput()
+            # Filter modules to only show modules from the specified course
+            self.fields['module'].queryset = Module.objects.filter(course=course)
+        else:
+            # If no specific course, show all modules from user's courses
+            if user:
+                self.fields['module'].queryset = Module.objects.filter(course__instructor=user)
+        
         self.fields['due_date'].input_formats = ('%Y-%m-%dT%H:%M',)
+        
+        # Add Bootstrap classes
+        for field_name, field in self.fields.items():
+            if field_name != 'course':  # Don't add classes to hidden course field
+                field.widget.attrs.update({'class': 'form-control'})
 
 
 class QuizForm(forms.ModelForm):
@@ -70,9 +93,32 @@ class QuizForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        course = kwargs.pop('course', None)
         super().__init__(*args, **kwargs)
+        
+        # Filter course choices to only show courses owned by the user
+        if user:
+            self.fields['course'].queryset = Course.objects.filter(instructor=user)
+        
+        # If a specific course is provided, set it and make the field read-only
+        if course:
+            self.fields['course'].initial = course
+            self.fields['course'].widget = forms.HiddenInput()
+            # Filter modules to only show modules from the specified course
+            self.fields['module'].queryset = Module.objects.filter(course=course)
+        else:
+            # If no specific course, show all modules from user's courses
+            if user:
+                self.fields['module'].queryset = Module.objects.filter(course__instructor=user)
+        
         self.fields['available_from'].input_formats = ('%Y-%m-%dT%H:%M',)
         self.fields['available_until'].input_formats = ('%Y-%m-%dT%H:%M',)
+        
+        # Add Bootstrap classes
+        for field_name, field in self.fields.items():
+            if field_name != 'course':  # Don't add classes to hidden course field
+                field.widget.attrs.update({'class': 'form-control'})
 
 
 class QuestionForm(forms.ModelForm):

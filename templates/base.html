@@ -12,55 +12,123 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Custom CSS -->
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-modern sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'core:home' %}">
-                <img src="https://cdn-icons-png.flaticon.com/512/2232/2232687.png" alt="Logo" height="40">
-                Online Learning
+            <!-- Brand -->
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'core:home' %}">
+                <div class="brand-icon me-2">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <span class="brand-text">EduLearn</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler modern-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
+            <!-- Navigation Menu -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:home' %}">Home</a>
+                        <a class="nav-link modern-nav-link" href="{% url 'core:home' %}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'courses:course_list' %}">Courses</a>
+                        <a class="nav-link modern-nav-link" href="{% url 'courses:course_list' %}">
+                            <i class="fas fa-book-open me-1"></i>Courses
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:about' %}">About</a>
+                        <a class="nav-link modern-nav-link" href="{% url 'core:about' %}">
+                            <i class="fas fa-info-circle me-1"></i>About
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:contact' %}">Contact</a>
+                        <a class="nav-link modern-nav-link" href="{% url 'core:contact' %}">
+                            <i class="fas fa-envelope me-1"></i>Contact
+                        </a>
                     </li>
                 </ul>
-                <div class="d-flex align-items-center">
+
+                <!-- User Menu -->
+                <div class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
-                        <div class="dropdown">
-                            <button class="btn btn-link dropdown-toggle text-dark text-decoration-none" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                                {% if user.profile_picture %}
-                                <img src="{{ user.profile_picture.url }}" 
-                                     alt="{{ user.get_full_name }}" 
-                                     class="rounded-circle me-2" 
-                                     width="32" 
-                                     height="32" />
-                                {% else %}
-                                <i class="fas fa-user-circle fa-2x me-2"></i>
-                                {% endif %}
-                                {{ user.get_full_name }}
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
+                        <!-- Notifications -->
+                        <div class="nav-item dropdown me-3">
+                            <a class="nav-link modern-nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    3
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end modern-dropdown">
+                                <li><h6 class="dropdown-header">Notifications</h6></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-circle text-primary me-2"></i>New course available</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-circle text-success me-2"></i>Assignment graded</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-circle text-warning me-2"></i>Live session starting</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-center" href="#">View all notifications</a></li>
+                            </ul>
+                        </div>
+
+                        <!-- User Profile -->
+                        <div class="nav-item dropdown">
+                            <a class="nav-link modern-nav-link d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                                <div class="user-avatar me-2">
+                                    {% if user.profile_picture %}
+                                        <img src="{{ user.profile_picture.url }}" 
+                                             alt="{{ user.get_full_name }}" 
+                                             class="rounded-circle" 
+                                             width="32" 
+                                             height="32" />
+                                    {% else %}
+                                        <div class="avatar-placeholder">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <span class="user-name d-none d-lg-inline">{{ user.get_full_name|default:user.username }}</span>
+                                <i class="fas fa-chevron-down ms-1"></i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end modern-dropdown">
+                                <li>
+                                    <div class="dropdown-header">
+                                        <div class="d-flex align-items-center">
+                                            <div class="user-avatar me-2">
+                                                {% if user.profile_picture %}
+                                                    <img src="{{ user.profile_picture.url }}" 
+                                                         alt="{{ user.get_full_name }}" 
+                                                         class="rounded-circle" 
+                                                         width="40" 
+                                                         height="40" />
+                                                {% else %}
+                                                    <div class="avatar-placeholder">
+                                                        <i class="fas fa-user"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ user.get_full_name|default:user.username }}</div>
+                                                <small class="text-muted">{{ user.email }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item" href="{% url 'users:profile' %}">
-                                        <i class="fas fa-user me-2"></i>Profile
+                                        <i class="fas fa-user me-2"></i>My Profile
                                     </a>
                                 </li>
                                 {% if user.is_instructor %}
@@ -76,17 +144,28 @@
                                     </a>
                                 </li>
                                 {% endif %}
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-cog me-2"></i>Settings
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item" href="{% url 'users:logout' %}">
-                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                    <a class="dropdown-item text-danger" href="{% url 'users:logout' %}">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Sign Out
                                     </a>
                                 </li>
                             </ul>
                         </div>
                     {% else %}
-                        <a href="{% url 'users:login' %}" class="btn btn-outline-primary me-2">Login</a>
-                        <a href="{% url 'users:register' %}" class="btn btn-primary">Sign Up</a>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="{% url 'users:login' %}" class="btn btn-outline-primary btn-sm modern-btn">
+                                <i class="fas fa-sign-in-alt me-1"></i>Sign In
+                            </a>
+                            <a href="{% url 'users:register' %}" class="btn btn-primary btn-sm modern-btn">
+                                <i class="fas fa-user-plus me-1"></i>Get Started
+                            </a>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -97,8 +176,19 @@
     {% if messages %}
     <div class="container mt-3">
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show modern-alert" role="alert">
+            <div class="d-flex align-items-center">
+                {% if message.tags == 'success' %}
+                    <i class="fas fa-check-circle me-2 text-success"></i>
+                {% elif message.tags == 'error' %}
+                    <i class="fas fa-exclamation-circle me-2 text-danger"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                {% else %}
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                {% endif %}
+                {{ message }}
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         {% endfor %}
